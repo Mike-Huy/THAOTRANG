@@ -51,21 +51,24 @@ const Users = () => {
   };
 
   const filteredUsers = users.filter(user => 
-    user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.phone?.includes(searchTerm)
+    user.role !== 'super_admin' && (
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.phone?.includes(searchTerm)
+    )
   );
 
   const getRoleBadge = (role) => {
     const styles = {
-      super_admin: 'bg-purple-100 text-purple-700 border-purple-200',
-      admin: 'bg-blue-100 text-blue-700 border-blue-200',
-      staff: 'bg-green-100 text-green-700 border-green-200',
-      user: 'bg-gray-100 text-gray-700 border-gray-200'
+      super_admin: 'text-red-700 font-semibold',
+      admin: 'text-blue-600 font-semibold',
+      staff: 'text-black font-medium',
+      user: 'text-black font-medium',
+      customer: 'text-black font-medium'
     };
     return (
-      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${styles[role] || styles.user}`}>
-        {role}
+      <span className={`text-[10px] uppercase tracking-wider ${styles[role] || 'text-black font-medium'}`}>
+        {role?.replace('_', ' ')}
       </span>
     );
   };
@@ -76,8 +79,7 @@ const Users = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#0d1117] uppercase tracking-tight">Quản lý người dùng</h1>
-          <p className="text-gray-500 text-sm">Quản lý phân quyền và trạng thái hoạt động của thành viên.</p>
+          <h1 className="text-xl font-black text-[#0d1117] uppercase tracking-tight">Quản lý người dùng</h1>
         </div>
         <button 
           onClick={() => setIsAddModalOpen(true)}
@@ -234,7 +236,7 @@ const Users = () => {
         )}
       </AnimatePresence>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
+      <div className="bg-white rounded-2xl border border-green-200 shadow-sm overflow-hidden transition-all duration-300">
         <div className="p-4 border-b border-gray-50 flex flex-col md:flex-row gap-4 items-center justify-between bg-gray-50/50">
           <div className="relative w-full md:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -259,16 +261,16 @@ const Users = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 border-b border-gray-50">
-                <th className="px-6 py-4">Người dùng</th>
-                <th className="px-6 py-4">Vai trò</th>
-                <th className="px-6 py-4">Liên hệ</th>
-                <th className="px-6 py-4">Ngày tham gia</th>
-                <th className="px-6 py-4">Trạng thái</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+              <tr className="bg-[#008200] text-xs font-semibold uppercase tracking-wider text-white border-b border-[#008200]">
+                <th className="px-6 py-1 border-r border-white/20">Người dùng</th>
+                <th className="px-6 py-1 border-r border-white/20">Vai trò</th>
+                <th className="px-6 py-1 border-r border-white/20">Liên hệ</th>
+                <th className="px-6 py-1 border-r border-white/20">Ngày tham gia</th>
+                <th className="px-6 py-1 border-r border-white/20">Trạng thái</th>
+                <th className="px-6 py-1 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="">
               {loading ? (
                 [1,2,3].map(i => (
                   <tr key={i} className="animate-pulse">
@@ -278,53 +280,39 @@ const Users = () => {
                   </tr>
                 ))
               ) : filteredUsers.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50/80 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center font-black text-gray-500 overflow-hidden border border-gray-200 shadow-sm group-hover:shadow-md transition-shadow">
-                        {user.avatar_url ? (
-                          <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          user.username?.[0]?.toUpperCase() || '?'
-                        )}
-                      </div>
-                      <div>
-                        <div className="text-xs font-black text-[#0d1117] uppercase tracking-tight">{user.username || 'Chưa đặt tên'}</div>
-                        <div className="text-[10px] text-gray-400 flex items-center gap-1">
-                          <Mail size={10} /> {user.email || 'N/A'}
-                        </div>
-                      </div>
-                    </div>
+                <tr key={user.id} className="hover:bg-yellow-100 transition-colors">
+                  <td className="px-6 py-1 border-r border-b border-green-200">
+                    <div className="text-xs font-medium text-black uppercase tracking-tight">{user.username || 'Chưa đặt tên'}</div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-1 border-r border-b border-green-200">
                     {getRoleBadge(user.role)}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-1 border-r border-b border-green-200">
                     <div className="flex flex-col gap-1">
-                      <div className="text-[10px] font-bold text-gray-600 flex items-center gap-1.5">
+                      <div className="text-[10px] font-medium text-gray-600 flex items-center gap-1.5">
                         <Phone size={12} className="text-gray-400" />
                         {user.phone || '---'}
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-[10px] font-bold text-gray-500 flex items-center gap-1.5">
+                  <td className="px-6 py-1 border-r border-b border-green-200">
+                    <div className="text-[10px] font-medium text-gray-500 flex items-center gap-1.5">
                       <Calendar size={12} className="text-gray-400" />
                       {user.created_at ? format(new Date(user.created_at), 'dd/MM/yyyy', { locale: vi }) : '---'}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-1 border-r border-b border-green-200">
                     {user.is_banned ? (
-                      <span className="flex items-center gap-1.5 text-red-500 text-[10px] font-black uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5 text-red-500 text-[10px] font-medium uppercase tracking-wider">
                         <ShieldAlert size={14} /> Bị khóa
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1.5 text-green-500 text-[10px] font-black uppercase tracking-wider">
+                      <span className="flex items-center gap-1.5 text-blue-600 text-[10px] font-medium uppercase tracking-wider">
                         <Shield size={14} /> Hoạt động
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-1 border-b border-green-200 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button 
                         onClick={() => toggleBan(user.id, !user.is_banned)}
@@ -332,9 +320,6 @@ const Users = () => {
                         title={user.is_banned ? 'Mở khóa' : 'Khóa tài khoản'}
                       >
                         {user.is_banned ? <UserCheck size={16} /> : <UserX size={16} />}
-                      </button>
-                      <button className="p-2 text-gray-400 hover:text-[#00c853] hover:bg-gray-100 rounded-lg transition-all">
-                        <MoreVertical size={16} />
                       </button>
                     </div>
                   </td>

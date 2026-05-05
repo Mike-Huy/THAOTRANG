@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ShoppingBag, Star, SlidersHorizontal, X } from 'lucide-react';
+import { Search, ShoppingBag, Star, SlidersHorizontal, X, Loader2 } from 'lucide-react';
+import { useProducts } from '../hooks/useProducts';
 import productsImg from '../assets/badminton_products_1777876769461.png';
 
 const Products = () => {
@@ -8,26 +9,19 @@ const Products = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilter, setShowFilter] = useState(false);
 
-  const productData = [
-    { id: 1, name: 'Vợt Yonex Astrox 88D Pro', category: 'racket', price: 4500000, img: productsImg, rating: 5, tag: 'New' },
-    { id: 2, name: 'Cầu Hải Yến S90 (12 quả)', category: 'shuttle', price: 250000, img: productsImg, rating: 4, tag: 'Hot' },
-    { id: 3, name: 'Quấn cán Yonex AC102EX', category: 'accessory', price: 30000, img: productsImg, rating: 5, tag: 'Best' },
-    { id: 4, name: 'Giày Victor SH-P9200', category: 'shoes', price: 2100000, img: productsImg, rating: 4, tag: '-10%' },
-    { id: 5, name: 'Vợt Lining Tectonic 7', category: 'racket', price: 3800000, img: productsImg, rating: 5, tag: 'New' },
-    { id: 6, name: 'Balo Yonex Pro 2024', category: 'accessory', price: 1200000, img: productsImg, rating: 4, tag: 'New' },
-  ];
+  const { products, categories: hookCategories, loading } = useProducts({ status: 'active' });
 
-  const filteredProducts = productData.filter(p =>
-    (category === 'all' || p.category === category) &&
+  const filteredProducts = products.filter(p =>
+    (category === 'all' || p.category_id === category) &&
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const categories = [
-    { id: 'all', label: 'Tất cả sản phẩm', count: productData.length },
-    { id: 'racket', label: 'Vợt cầu lông', count: productData.filter(p => p.category === 'racket').length },
-    { id: 'shuttle', label: 'Quả cầu lông', count: productData.filter(p => p.category === 'shuttle').length },
-    { id: 'shoes', label: 'Giày cầu lông', count: productData.filter(p => p.category === 'shoes').length },
-    { id: 'accessory', label: 'Phụ kiện khác', count: productData.filter(p => p.category === 'accessory').length },
+    { id: 'all', name: 'Tất cả sản phẩm', count: products.length },
+    ...hookCategories.map(cat => ({
+      ...cat,
+      count: products.filter(p => p.category_id === cat.id).length
+    }))
   ];
 
   const FilterList = () => (
@@ -38,7 +32,7 @@ const Products = () => {
           onClick={() => { setCategory(cat.id); setShowFilter(false); }}
           className={category === cat.id ? 'pill-active' : 'pill-inactive'}
         >
-          <span>{cat.label}</span>
+          <span>{cat.name}</span>
           <span
             className="text-xs font-black px-2 py-0.5 rounded-full"
             style={category === cat.id
@@ -50,6 +44,18 @@ const Products = () => {
           </span>
         </button>
       ))}
+    </div>
+  );
+
+  const SkeletonCard = () => (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 p-4 animate-pulse">
+      <div className="aspect-square bg-gray-200 rounded-xl mb-4" />
+      <div className="h-4 bg-gray-200 rounded w-full mb-2" />
+      <div className="h-4 bg-gray-200 rounded w-2/3 mb-4" />
+      <div className="flex justify-between items-center">
+        <div className="h-5 bg-gray-200 rounded w-1/3" />
+        <div className="w-10 h-10 bg-gray-200 rounded-full" />
+      </div>
     </div>
   );
 
@@ -111,7 +117,7 @@ const Products = () => {
                     : 'bg-white text-gray-600 border-gray-200'
                 }`}
               >
-                {cat.label} ({cat.count})
+                {cat.name} ({cat.count})
               </button>
             ))}
           </div>
@@ -127,54 +133,64 @@ const Products = () => {
             {/* Product Grid */}
             <div className="lg:col-span-9">
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-                {filteredProducts.map((p) => (
-                  <motion.div
-                    key={p.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ y: -8 }}
-                    transition={{ duration: 0.3 }}
-                    className="card group cursor-pointer relative !p-3 sm:!p-4 border border-[#008200]/20 hover:border-[#008200]/40 shadow-sm"
-                  >
-                    <div className="absolute top-3 right-3 z-10">
-                      <span className="badge !text-[8px] !px-1.5 !py-0.5">{p.tag}</span>
-                    </div>
-                    <div className="aspect-square mb-3 sm:mb-5 overflow-hidden rounded-xl flex items-center justify-center p-3 sm:p-4"
-                      style={{ background: 'linear-gradient(135deg, #f0faf0, #e8f5e9)' }}>
-                      <img
-                        src={p.img}
-                        alt={p.name}
-                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
-                      />
-                    </div>
-                    <div className="px-0.5 sm:px-1">
-                      <h3 className="font-bold text-[11px] sm:text-sm mb-1.5 sm:mb-2 group-hover:text-[#008200] transition-colors leading-tight line-clamp-2">
-                        {p.name}
-                      </h3>
-                      <div className="flex text-yellow-400 mb-2 sm:mb-4 gap-0.5">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star key={s} size={10} fill={s <= p.rating ? 'currentColor' : 'none'} className={s <= p.rating ? '' : 'text-gray-200'} />
-                        ))}
+                {loading ? (
+                  [1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)
+                ) : filteredProducts.length > 0 ? (
+                  filteredProducts.map((p) => (
+                    <motion.div
+                      key={p.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ y: -8 }}
+                      transition={{ duration: 0.3 }}
+                      className="card group cursor-pointer relative !p-3 sm:!p-4 border border-[#008200]/20 hover:border-[#008200]/40 shadow-sm"
+                    >
+                      {p.tag && (
+                        <div className="absolute top-3 right-3 z-10">
+                          <span className="badge !text-[8px] !px-1.5 !py-0.5">{p.tag}</span>
+                        </div>
+                      )}
+                      <div className="aspect-square mb-3 sm:mb-5 overflow-hidden rounded-xl flex items-center justify-center p-3 sm:p-4"
+                        style={{ background: 'linear-gradient(135deg, #f0faf0, #e8f5e9)' }}>
+                        <img
+                          src={p.image_url || productsImg}
+                          alt={p.name}
+                          className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                        />
                       </div>
-                      <div className="flex justify-between items-center">
-                        <p className="font-extrabold text-xs sm:text-base" style={{
-                          background: 'linear-gradient(135deg, #00c853, #007a00)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                        }}>
-                          {p.price.toLocaleString('vi-VN')}đ
-                        </p>
-                        <button
-                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-white flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
-                          style={{ background: 'linear-gradient(135deg, #00c853, #008200)', boxShadow: '0 4px 12px rgba(0,200,83,0.4)' }}
-                        >
-                          <ShoppingBag size={14} />
-                        </button>
+                      <div className="px-0.5 sm:px-1">
+                        <h3 className="font-bold text-[11px] sm:text-sm mb-1.5 sm:mb-2 group-hover:text-[#008200] transition-colors leading-tight line-clamp-2">
+                          {p.name}
+                        </h3>
+                        <div className="flex text-yellow-400 mb-2 sm:mb-4 gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star key={s} size={10} fill={s <= (p.rating || 5) ? 'currentColor' : 'none'} className={s <= (p.rating || 5) ? '' : 'text-gray-200'} />
+                          ))}
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <p className="font-extrabold text-xs sm:text-base" style={{
+                            background: 'linear-gradient(135deg, #00c853, #007a00)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            backgroundClip: 'text',
+                          }}>
+                            {p.price.toLocaleString('vi-VN')}đ
+                          </p>
+                          <button
+                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-white flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+                            style={{ background: 'linear-gradient(135deg, #00c853, #008200)', boxShadow: '0 4px 12px rgba(0,200,83,0.4)' }}
+                          >
+                            <ShoppingBag size={14} />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="col-span-full py-20 text-center">
+                    <p className="text-black/40 text-sm font-bold uppercase tracking-widest">Không tìm thấy sản phẩm nào.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

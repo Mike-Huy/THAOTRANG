@@ -124,14 +124,14 @@ const AdminLayout = () => {
             <div className="flex items-center gap-3 pl-6 border-l border-gray-100">
               <div className="text-right hidden sm:block">
                 <div className="text-xs font-black text-[#0d1117] uppercase tracking-tight">
-                  {profile?.username || 'Admin'}
+                  {profile?.role === 'super_admin' ? 'Admin' : (profile?.username || 'Admin')}
                 </div>
                 <div className="text-[10px] font-bold text-[#00c853] uppercase tracking-widest">
-                  {profile?.role}
+                  {profile?.role === 'super_admin' ? 'Quản trị viên' : profile?.role}
                 </div>
               </div>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00c853] to-[#008200] flex items-center justify-center text-white font-black shadow-lg shadow-[#00c853]/20">
-                {profile?.username?.[0]?.toUpperCase() || 'A'}
+                {profile?.role === 'super_admin' ? 'A' : (profile?.username?.[0]?.toUpperCase() || 'A')}
               </div>
             </div>
           </div>

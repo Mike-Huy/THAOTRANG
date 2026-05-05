@@ -69,13 +69,9 @@ export function useProducts({ status, categoryId, featured, limit } = {}) {
   return { products, categories, loading, error, refetch: fetchProducts, createProduct, updateProduct, deleteProduct };
 }
 
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    + '-' + Date.now();
+function slugify(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/gi, 'd').toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '').trim()
+    .replace(/\s+/g, '-');
 }

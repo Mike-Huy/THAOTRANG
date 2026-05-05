@@ -1,33 +1,22 @@
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Calendar, User, ArrowRight } from 'lucide-react';
+import { usePosts } from '../hooks/usePosts';
 
 const News = () => {
-  const articles = [
-    {
-      id: 1,
-      title: '5 Kỹ thuật di chuyển bước chân cơ bản cho người mới bắt đầu',
-      excerpt: 'Di chuyển bước chân là nền tảng quan trọng nhất trong cầu lông. Hiểu rõ cách di chuyển sẽ giúp bạn tiết kiệm thể lực và đón cầu chính xác hơn.',
-      date: '01/05/2026',
-      author: 'Admin Thảo Trang',
-      image: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&q=80&w=1000'
-    },
-    {
-      id: 2,
-      title: 'Cách lựa chọn vợt cầu lông phù hợp với lối chơi tấn công',
-      excerpt: 'Lối chơi tấn công đòi hỏi một cây vợt có độ cứng cao và nặng đầu. Bài viết này sẽ phân tích các thông số quan trọng như 3U, 4U, G5...',
-      date: '28/04/2026',
-      author: 'Chuyên gia thể thao',
-      image: 'https://images.unsplash.com/photo-1613918431208-67324451ecd2?auto=format&fit=crop&q=80&w=1000'
-    },
-    {
-      id: 3,
-      title: 'Chế độ dinh dưỡng tối ưu cho vận động viên cầu lông phong trào',
-      excerpt: 'Ăn gì trước và sau khi ra sân để duy trì bền bỉ suốt 2-3 tiếng đồng hồ? Hãy cùng khám phá thực đơn vàng cho dân chơi cầu lông.',
-      date: '25/04/2026',
-      author: 'Học viện Thảo Trang',
-      image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=1000'
-    }
-  ];
+  const { posts, loading } = usePosts({ status: 'published' });
+
+  const SkeletonCard = () => (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 animate-pulse">
+      <div className="h-44 sm:h-52 bg-gray-200" />
+      <div className="p-4 sm:p-5">
+        <div className="h-3 bg-gray-200 rounded w-1/2 mb-3" />
+        <div className="h-4 bg-gray-200 rounded w-full mb-2" />
+        <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
+        <div className="h-3 bg-gray-200 rounded w-1/4" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="news-page pt-12 min-h-screen bg-gray-50">
@@ -44,39 +33,54 @@ const News = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            {articles.map((article) => (
-              <motion.article
-                key={article.id}
-                whileHover={{ y: -8 }}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-[#008200]/20"
-              >
-                <div className="h-44 sm:h-52 overflow-hidden relative">
-                  <img
-                    src={article.image}
-                    alt={article.title}
-                    className="w-full h-full object-cover transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 left-4 bg-[#008200] px-3 py-1 rounded-full text-white font-bold text-[8px] shadow-sm uppercase tracking-wider">
-                    KIẾN THỨC
+            {loading ? (
+              [1, 2, 3].map(i => <SkeletonCard key={i} />)
+            ) : posts.length > 0 ? (
+              posts.map((post) => (
+                <motion.article
+                  key={post.id}
+                  whileHover={{ y: -8 }}
+                  className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all border border-[#008200]/20"
+                >
+                  <div className="h-44 sm:h-52 overflow-hidden relative">
+                    <img
+                      src={post.image_url || 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&q=80&w=1000'}
+                      alt={post.title}
+                      className="w-full h-full object-cover transition-transform duration-500"
+                    />
+                    <div className="absolute top-4 left-4 bg-[#008200] px-3 py-1 rounded-full text-white font-bold text-[8px] shadow-sm uppercase tracking-wider">
+                      {post.category || 'KIẾN THỨC'}
+                    </div>
                   </div>
-                </div>
-                <div className="p-4 sm:p-5">
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] text-black/50 mb-3 font-medium">
-                    <span className="flex items-center gap-1"><Calendar size={12} /> {article.date}</span>
-                    <span className="flex items-center gap-1"><User size={12} /> {article.author}</span>
+                  <div className="p-4 sm:p-5">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[10px] text-black/50 mb-3 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={12} /> {new Date(post.created_at).toLocaleDateString('vi-VN')}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <User size={12} /> {post.author?.full_name || post.author?.username || 'Admin'}
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold mb-3 hover:text-[#008200] transition-colors leading-snug line-clamp-2">
+                      {post.title}
+                    </h3>
+                    <p className="text-black/70 mb-4 sm:mb-5 line-clamp-2 text-[11px] leading-relaxed">
+                      {post.excerpt}
+                    </p>
+                    <Link 
+                      to={`/tin-tuc/${post.slug}`}
+                      className="flex items-center gap-2 text-[#008200] font-bold hover:gap-3 transition-all uppercase text-[9px] tracking-widest"
+                    >
+                      Đọc tiếp <ArrowRight size={14} />
+                    </Link>
                   </div>
-                  <h3 className="text-sm font-bold mb-3 hover:text-[#008200] transition-colors leading-snug line-clamp-2">
-                    {article.title}
-                  </h3>
-                  <p className="text-black/70 mb-4 sm:mb-5 line-clamp-2 text-[11px] leading-relaxed">
-                    {article.excerpt}
-                  </p>
-                  <button className="flex items-center gap-2 text-[#008200] font-bold hover:gap-3 transition-all uppercase text-[9px] tracking-widest">
-                    Đọc tiếp <ArrowRight size={14} />
-                  </button>
-                </div>
-              </motion.article>
-            ))}
+                </motion.article>
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center">
+                <p className="text-black/40 text-sm font-bold uppercase tracking-widest">Chưa có bài viết nào được đăng.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

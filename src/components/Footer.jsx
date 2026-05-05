@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Send } from 'lucide-react';
+import { useSettings } from '../hooks/useSettings';
 
 const FacebookIcon = ({ size = 20 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -23,6 +24,21 @@ const YoutubeIcon = ({ size = 20 }) => (
 );
 
 const Footer = () => {
+  const { settings } = useSettings();
+
+  const internalLinks = [
+    { label: 'Trang chủ', to: '/' },
+    { label: 'Giới thiệu', to: '/gioi-thieu' },
+    { label: 'Đặt sân', to: '/dat-san' },
+    { label: 'Sản phẩm', to: '/san-pham' },
+  ];
+
+  const socialLinks = [
+    { icon: <FacebookIcon size={12} />, href: settings.facebook_url || '#' },
+    { icon: <InstagramIcon size={12} />, href: settings.instagram_url || '#' },
+    { icon: <YoutubeIcon size={12} />, href: settings.youtube_url || '#' }
+  ];
+
   return (
     <footer className="bg-[#0a0f0a] text-white pt-6 pb-4">
       <div className="container px-4">
@@ -32,20 +48,20 @@ const Footer = () => {
             <Link to="/" className="flex items-center gap-2.5 mb-4">
               <div className="w-9 h-9 bg-[#008200] rounded-lg flex items-center justify-center text-white font-black text-lg shrink-0">TT</div>
               <div className="flex flex-col leading-none">
-                <span className="font-black text-base sm:text-lg tracking-tight text-white uppercase">THAOTRANG</span>
+                <span className="font-black text-base sm:text-lg tracking-tight text-white uppercase">{settings.site_name || 'THAOTRANG'}</span>
                 <span className="text-[7px] uppercase tracking-[0.2em] font-bold text-[#ccff00]">Badminton</span>
               </div>
             </Link>
             <p className="text-white/70 text-xs leading-relaxed max-w-xs">
-              Hệ thống sân cầu lông đẳng cấp quốc tế.
+              {settings.site_description || 'Hệ thống sân cầu lông đẳng cấp quốc tế.'}
             </p>
           </div>
 
           {/* Links */}
           <div className="flex flex-col gap-1">
-            {['Trang chủ', 'Giới thiệu', 'Đặt sân', 'Sản phẩm'].map((item, idx) => (
-              <Link key={idx} to="#" className="text-white/80 hover:text-[#ccff00] text-[12px] sm:text-[13px] transition-colors">
-                {item}
+            {internalLinks.map((link, idx) => (
+              <Link key={idx} to={link.to} className="text-white/80 hover:text-[#ccff00] text-[12px] sm:text-[13px] transition-colors">
+                {link.label}
               </Link>
             ))}
           </div>
@@ -54,15 +70,21 @@ const Footer = () => {
           <div className="flex flex-col gap-2">
             <div className="flex items-start gap-2">
               <MapPin size={12} className="text-[#ccff00] shrink-0 mt-0.5" />
-              <span className="text-white/80 text-[11px] sm:text-[12px] leading-relaxed">123 Đường Cầu Lông, Quận 7, TP. HCM</span>
+              <span className="text-white/80 text-[11px] sm:text-[12px] leading-relaxed">
+                {settings.address || '123 Đường Cầu Lông, Quận 7, TP. HCM'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Phone size={12} className="text-[#ccff00] shrink-0" />
-              <span className="text-white/80 text-[12px] sm:text-[13px]">090 123 4567</span>
+              <span className="text-white/80 text-[12px] sm:text-[13px]">
+                {settings.phone || '090 123 4567'}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <Mail size={12} className="text-[#ccff00] shrink-0" />
-              <span className="text-white/80 text-[11px] sm:text-[12px]">contact@thaotrang.vn</span>
+              <span className="text-white/80 text-[11px] sm:text-[12px]">
+                {settings.email || 'contact@thaotrang.vn'}
+              </span>
             </div>
           </div>
 
@@ -79,12 +101,8 @@ const Footer = () => {
               </button>
             </div>
             <div className="flex gap-2">
-              {[
-                { icon: <FacebookIcon size={12} />, href: '#' },
-                { icon: <InstagramIcon size={12} />, href: '#' },
-                { icon: <YoutubeIcon size={12} />, href: '#' }
-              ].map((social, idx) => (
-                <a key={idx} href={social.href} className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#008200] transition-all">
+              {socialLinks.map((social, idx) => (
+                <a key={idx} href={social.href} target="_blank" rel="noreferrer" className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-[#008200] transition-all">
                   {social.icon}
                 </a>
               ))}

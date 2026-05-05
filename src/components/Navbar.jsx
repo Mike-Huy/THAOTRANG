@@ -155,7 +155,7 @@ const Navbar = () => {
                     {profile?.username || user?.email?.split('@')[0] || 'Thành viên'}
                   </span>
                   <span className="text-[8px] font-bold text-[#00c853] uppercase tracking-[0.2em]">
-                    {profile?.role === 'customer' ? 'Thành viên' : (profile?.role || 'User')}
+                    {profile?.role === 'customer' || profile?.role === 'super_admin' ? 'Thành viên' : (profile?.role || 'User')}
                   </span>
                 </div>
                 

@@ -1,13 +1,25 @@
 import { motion } from 'framer-motion';
 import { Trophy, Users, Heart } from 'lucide-react';
+import { useActivities } from '../hooks/useActivities';
 import action1 from '../assets/badminton_action_1_1777876749514.png';
 
 const Activities = () => {
+  const { activities, loading } = useActivities({ status: 'published' });
+
   const stats = [
     { label: 'Giải đấu đã tổ chức', value: '45+', icon: <Trophy size={20} /> },
     { label: 'Vận động viên hội viên', value: '1,200', icon: <Users size={20} /> },
     { label: 'Tỉ lệ hài lòng', value: '98%', icon: <Heart size={20} /> },
   ];
+
+  const SkeletonCard = () => (
+    <div className="bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100 animate-pulse aspect-[4/3]" />
+  );
+
+  const formatDate = (dateString) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('vi-VN');
+  };
 
   return (
     <div className="activities-page pt-12 bg-[#f9fafb]">
@@ -47,23 +59,42 @@ const Activities = () => {
       <section className="section-padding">
         <div className="container px-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <motion.div
-                key={i}
-                whileHover={{ y: -10 }}
-                className="card !p-0 overflow-hidden group border-none shadow-lg"
-              >
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img src={action1} alt={`Activity ${i}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all flex items-end p-4">
-                    <div>
-                      <span className="bg-[#008200] text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase mb-2 block w-fit">Tournament</span>
-                      <h3 className="text-white font-bold text-sm">Giải cầu lông mở rộng 2024</h3>
+            {loading ? (
+              [1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)
+            ) : activities.length > 0 ? (
+              activities.map((act) => (
+                <motion.div
+                  key={act.id}
+                  whileHover={{ y: -10 }}
+                  className="card !p-0 overflow-hidden group border-none shadow-lg relative"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden">
+                    <img 
+                      src={act.image_url || action1} 
+                      alt={act.title} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-all flex items-end p-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="bg-[#008200] text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase block w-fit">
+                            {act.type || 'Sự kiện'}
+                          </span>
+                          <span className="text-white/60 text-[8px] font-bold uppercase tracking-wider">
+                            {formatDate(act.start_date)}
+                          </span>
+                        </div>
+                        <h3 className="text-white font-bold text-sm leading-snug">{act.title}</h3>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-full py-20 text-center">
+                <p className="text-black/40 text-sm font-bold uppercase tracking-widest">Chưa có hoạt động nào được cập nhật.</p>
+              </div>
+            )}
           </div>
         </div>
       </section>

@@ -1,0 +1,134 @@
+SKILL:
+Hãy đọc file skill/table_format_skill.md và áp dụng chuẩn thiết kế bảng này cho trang quản lý đặt sân này nhé!
+
+
+
+
+
+
+Bài toán
+Lấy dữ liệu sản phẩm (mã SP, tên, đơn vị tính, hình ảnh, giá bán lẻ...) từ Supabase project nguồn → hiển thị trên TTQ6, giá không được chỉnh sửa tại TTQ6.
+
+3 Giải pháp
+Giải pháp A: Direct Read — Kết nối thẳng Supabase nguồn (đơn giản nhất)
+TTQ6 tạo thêm 1 Supabase client trỏ thẳng vào project nguồn. Mỗi lần load trang Products → query trực tiếp bảng sản phẩm bên nguồn.
+
+
+TTQ6 Frontend  →  supabaseSource.from('products').select(...)  →  DB Nguồn
+Yêu cầu: Project nguồn phải mở RLS SELECT cho anon key (hoặc cấp service_role read-only).
+
+Ưu: Không cần đồng bộ, dữ liệu luôn mới nhất, không duplicate.
+Nhược: TTQ6 phụ thuộc trực tiếp vào uptime của project nguồn. Lộ anon key nguồn trong frontend.
+
+Giải pháp B: Mirror Table + Sync Function (tối ưu nhất — KA khuyến nghị)
+Tạo bảng ttq6_products_mirror tại TTQ6 với đầy đủ fields từ nguồn + cột source_id, synced_at. Bảng này không có quyền UPDATE giá từ frontend (RLS chặn).
+
+Đồng bộ theo 2 cách:
+
+Tự động: Supabase Edge Function chạy định kỳ (cron) kéo data từ nguồn về
+Thủ công: Nút "Đồng bộ ngay" trong trang admin TTQ6
+
+DB Nguồn  →  Edge Function (cron/manual)  →  ttq6_products_mirror  →  TTQ6 Frontend
+Ưu: Tách biệt hoàn toàn 2 hệ thống, giá được bảo vệ bằng RLS, không lộ credentials nguồn ra client.
+Nhược: Cần setup Edge Function + cron, data có độ trễ theo chu kỳ sync.
+
+Giải pháp C: Webhook từ nguồn đẩy về TTQ6 (realtime nhất)
+Project nguồn cấu hình Database Webhook → mỗi khi sản phẩm thay đổi tự động gọi Edge Function TTQ6 để cập nhật mirror table.
+
+Ưu: Gần realtime, không cần polling.
+Nhược: Phụ thuộc vào project nguồn phải cấu hình webhook, phức tạp hơn A và B.
+
+KA khuyến nghị
+Giải pháp B (Mirror + Sync Function) vì:
+
+Giá được bảo vệ tuyệt đối tại tầng database (RLS)
+TTQ6 hoạt động độc lập, không phụ thuộc uptime nguồn
+Có thể sync manual khi cần, hoặc auto theo giờ
+MIKE chọn giải pháp nào? Và cho KA biết thêm:
+
+Project nguồn dùng Supabase hay hệ thống khác (REST API, MySQL...)?
+Cấu trúc bảng sản phẩm nguồn có những fields nào?
+Sync theo chu kỳ bao lâu là chấp nhận được (1h, 24h, hay realtime)?
+Tôi muốn chọn phương án B, nhưng điều chỉnh chút là cho phép TTQ6 điều chỉnh giá bán tự dự án của mình và đẩy thông tin về cho project nguồn để project nguồn cập nhật giá bán lẻ của TTQ6 (vì project nguồn có nhiều giá bán khác nhau cho các website khác nhau của cùng 1 sản phẩm, phân biệt với nhau bằng website_id)
+Rất rõ. Đây là kiến trúc 2 chiều có kiểm soát:
+
+Nguồn → TTQ6: Kéo thông tin sản phẩm (tên, mã, hình ảnh, đơn vị...)
+TTQ6 → Nguồn: Đẩy giá bán lẻ TTQ6 về (phân biệt bằng website_id)
+Trước khi KA thiết kế schema và code, cần MIKE cung cấp thêm:
+
+1. Cấu trúc bảng sản phẩm bên project nguồn:
+
+Tên bảng là gì? (ví dụ: products, items...)
+Các cột hiện có? (đặc biệt: tên cột mã SP, tên SP, đơn vị tính, hình ảnh, giá)
+Bảng giá bán theo website trông như thế nào? (ví dụ: product_prices với product_id, website_id, price?)
+2. Kết nối project nguồn:
+
+Supabase URL và anon key của project nguồn (KA cần để tạo client kết nối)
+website_id của TTQ6 trong project nguồn là gì?
+3. Quyền truy cập:
+
+Project nguồn có cho phép TTQ6 đọc bảng sản phẩm không? (RLS policy SELECT cho anon?)
+TTQ6 có được phép ghi vào bảng giá bên nguồn không? (cần service_role key hay có endpoint riêng?)
+4. Chu kỳ sync:
+
+Sync tự động mỗi bao lâu? (1h, 6h, 24h?)
+Hay chỉ sync thủ công (nút bấm trong admin)?
+Cung cấp xong KA sẽ thiết kế ngay schema + hook + Edge Function.
+
+Tôi cung cấp thêm các thông tin sau :
+1. Bạn hãy cài đặt website_id của trang TTQ6 này là "ttq6"
+2. Bạn hãy viết SQL để tôi đưa cho project nguồn chạy để cấp phép cho TTQ6 đọc bảng sản phẩm
+3. ở project nguồn đã có 1 bảng theo dõi bảng giá riêng của từng website phân biệt bởi website_id nên bạn có thể được ghi
+4. Tôi muốn tăng cường độ bảo mật cho việc trang TTQ6 kết nối với project nguồn bằng 1 khóa riêng biệt chứ không dùng publishable key --> việc này khả thi không ?
+5. Chu kỳ sync thường tôi muốn sync từ lúc 00:00:30 (tức là 30s kể từ khi bắt đầu ngày mới)
+Rất tốt. KA sẽ trả lời từng điểm trước khi code:
+
+Về câu hỏi số 4 — Khóa riêng biệt thay vì anon key:
+
+Hoàn toàn khả thi. Project nguồn tạo 1 Supabase Service Role key hoặc dùng Row Level Security + JWT custom claims — nhưng cách thực tế nhất và bảo mật nhất là:
+
+Tạo 1 Supabase Edge Function bên project nguồn đóng vai trò API Gateway — TTQ6 gọi vào function đó với 1 secret token riêng (tự đặt, không phải anon key). Function xác thực token rồi mới truy cập DB.
+
+
+TTQ6  →  [secret_token]  →  Edge Function nguồn  →  DB nguồn
+Lợi ích: anon key và service key của project nguồn không bao giờ xuất hiện trong code TTQ6. Token bị lộ có thể revoke và cấp lại mà không ảnh hưởng gì.
+
+Trước khi KA thiết kế, cần MIKE bổ sung thông tin cấu trúc bảng nguồn:
+
+Bảng sản phẩm:
+
+Tên bảng?
+Tên các cột: mã SP, tên SP, đơn vị tính, hình ảnh, giá gốc?
+Bảng giá theo website:
+
+Tên bảng?
+Tên các cột: product_id, website_id, giá bán lẻ, và các cột khác?
+Khi có đủ thông tin này, KA sẽ viết cùng lúc:
+
+SQL chạy bên project nguồn (tạo Edge Function gateway + cấp quyền)
+SQL chạy bên TTQ6 (tạo mirror table + RLS bảo vệ giá)
+Hook useProducts cập nhật để đọc từ mirror + cho phép sửa giá
+Cấu hình sync cron lúc 00:00:30
+Bạn hãy viết cho tôi câu lệnh SQL để đọc dữ liệu 2 bảng như bạn nêu ở trên chi tiết nhất vì  tôi biết chính xác tên bảng
+Đây là 2 câu SQL để MIKE chạy trên Supabase SQL Editor của project nguồn để lấy đúng tên bảng và cột:
+
+Câu 1 — Đọc cấu trúc toàn bộ bảng (tìm bảng sản phẩm):
+
+SELECT 
+    table_name,
+    column_name,
+    data_type,
+    is_nullable,
+    column_default
+FROM information_schema.columns
+WHERE table_schema = 'public'
+ORDER BY table_name, ordinal_position;
+Câu 2 — Sau khi biết tên bảng, xem 3 dòng mẫu để hiểu data thực tế:
+
+
+-- Thay 'tên_bảng_sản_phẩm' bằng tên thật
+SELECT * FROM tên_bảng_sản_phẩm LIMIT 3;
+
+-- Thay 'tên_bảng_giá' bằng tên thật  
+SELECT * FROM tên_bảng_giá LIMIT 3;
+MIKE chạy câu 1 trước → copy kết quả gửi lại cho KA, KA sẽ đọc và xác định chính xác tên bảng + tên cột rồi tiến hành thiết kế toàn bộ hệ thống.

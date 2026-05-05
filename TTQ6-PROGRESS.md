@@ -383,3 +383,69 @@ Trigger `ttq6_on_auth_user_created` đang hoạt động đúng — user mới �
 - Không thay đổi design, chỉ điều chỉnh layout và spacing
 
 ====== KA - SESSION 3 END ======
+
+---
+
+====== KA - SESSION 4 [2026-05-06] ======
+
+## Feature: Xử lý Overlap Booking trên Calendar (Giải pháp Stack + Popover)
+
+### Vấn đề
+Khi nhiều lịch đặt cùng khung giờ, các `BookingBlock` chồng hoàn toàn lên nhau — admin không bấm được từng lịch để duyệt/từ chối.
+
+### Files tạo mới
+- `src/components/OverlapStack.jsx` — Component mới xử lý hiển thị cụm booking chồng giờ
+
+### Files đã sửa
+- `src/pages/Booking.jsx` — Thêm hàm `groupOverlaps()`, tích hợp `OverlapStack`, import component mới
+
+### Logic đã thêm
+
+#### `groupOverlaps(colBookings)` — trong `Booking.jsx`
+- Sort bookings theo `time_start`
+- Dùng sweep-line algorithm: gom các booking chồng giờ vào cùng 1 cluster
+- Trả về mảng clusters: mỗi cluster = `[booking, ...]`
+- Cluster 1 phần tử → render `BookingBlock` bình thường (không thay đổi)
+- Cluster nhiều phần tử → render `OverlapStack`
+
+#### `OverlapStack` component
+- Hiển thị 1 block đơn trên calendar với icon Layers + số lịch + badge đỏ "N chờ"
+- Click vào → mở **Popover** liệt kê từng booking trong cluster
+- Popover có `BookingRow` cho từng booking: tên, giờ, trạng thái + nút Duyệt/Hủy (nếu pending + isAdmin)
+- Click ra ngoài popover → tự đóng
+- `onConfirm(id)` và `onCancel(id)` nhận `id` cụ thể của từng booking trong cluster
+
+### ⚠️ Lưu ý cho MI
+1. **Popover hiện mở sang phải** (`left-full ml-2`) — nếu cột calendar nằm sát mép phải màn hình, popover sẽ bị tràn ra ngoài viewport. MI cần thêm logic detect vị trí để flip popover sang trái khi cần.
+2. Style của `OverlapStack` block (màu amber) có thể điều chỉnh để phù hợp hơn với design tổng thể.
+3. `BookingRow` dùng Tailwind inline — MI có thể extract thành class riêng nếu cần tái sử dụng.
+
+====== KA - SESSION 4 END ======
+
+---
+
+====== KA - SESSION 5 [2026-05-06] ======
+
+## Security: Ẩn & Bảo vệ tài khoản Super Admin khỏi trang quản trị
+
+### Vấn đề
+Tài khoản `super_admin` hiển thị trong danh sách người dùng và có thể bị ban/đổi role từ giao diện admin.
+
+### Nguyên tắc áp dụng
+- Super admin **không bao giờ xuất hiện** trong danh sách user trang quản trị
+- Super admin **không thể bị mutation** (ban, đổi role) từ bất kỳ giao diện nào
+- Trên website public và admin header, super admin **hiển thị như admin bình thường** — không lộ role thật
+
+### Files đã sửa
+
+| File | Thay đổi |
+|---|---|
+| `src/hooks/useUsers.js` | `fetchUsers()` thêm `.neq('role','super_admin')` — loại khỏi query tại nguồn. `updateRole()` và `toggleBan()` kiểm tra role trước khi update — từ chối nếu target là super_admin |
+| `src/components/admin/AdminLayout.jsx` | Header admin: username hiển thị là "Admin", role hiển thị là "Quản trị viên" khi đang login bằng super_admin |
+| `src/components/Navbar.jsx` | Navbar public: super_admin hiển thị badge "Thành viên" thay vì lộ role thật |
+
+### Không cần sửa
+- `Users.jsx` — filter `super_admin` client-side đã có sẵn ở `filteredUsers` (dòng 54), form thêm user không có option `super_admin`
+- Database RLS — bảo vệ tầng DB nằm ngoài phạm vi code frontend
+
+====== KA - SESSION 5 END ======

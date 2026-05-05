@@ -16,14 +16,15 @@ import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
 const Bookings = () => {
-  const { bookings, loading, error, updateStatus } = useBookings();
+  const { bookings, loading, error, confirmBooking, cancelBooking } = useBookings();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   const filteredBookings = bookings.filter(booking => {
-    const matchesSearch = 
-      booking.profiles?.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.courts?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      booking.booker_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.booker_phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.court?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     
@@ -32,19 +33,27 @@ const Bookings = () => {
 
   const getStatusBadge = (status) => {
     const styles = {
-      pending: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-      confirmed: 'bg-green-100 text-green-700 border-green-200',
-      cancelled: 'bg-red-100 text-red-700 border-red-200',
-      completed: 'bg-blue-100 text-blue-700 border-blue-200'
+      pending: 'text-amber-500',
+      confirmed: 'text-blue-600',
+      completed: 'text-blue-600',
+      cancelled: 'text-red-500'
+    };
+    const icons = {
+      pending: <Clock size={14} />,
+      confirmed: <CheckCircle2 size={14} />,
+      completed: <CheckCircle2 size={14} />,
+      cancelled: <XCircle size={14} />
     };
     const labels = {
       pending: 'Chờ duyệt',
       confirmed: 'Đã xác nhận',
-      cancelled: 'Đã hủy',
-      completed: 'Hoàn thành'
+      completed: 'Hoàn thành',
+      cancelled: 'Đã hủy'
     };
+
     return (
-      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${styles[status] || styles.pending}`}>
+      <span className={`flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider ${styles[status] || styles.pending}`}>
+        {icons[status] || <Clock size={14} />}
         {labels[status] || status}
       </span>
     );
@@ -56,8 +65,7 @@ const Bookings = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#0d1117] uppercase tracking-tight">Quản lý đặt sân</h1>
-          <p className="text-gray-500 text-sm">Theo dõi lịch trình và trạng thái các đơn đặt sân.</p>
+          <h1 className="text-xl font-black text-[#0d1117] uppercase tracking-tight">Quản lý đặt sân</h1>
         </div>
         <div className="flex gap-3">
           <button className="btn-outline">
@@ -71,7 +79,7 @@ const Bookings = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-300">
+      <div className="bg-white rounded-2xl border border-green-200 shadow-sm overflow-hidden transition-all duration-300">
         <div className="p-4 border-b border-gray-50 flex flex-col md:flex-row gap-4 items-center justify-between bg-gray-50/50">
           <div className="relative w-full md:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -101,89 +109,85 @@ const Bookings = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50/50 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 border-b border-gray-50">
-                <th className="px-6 py-4">Khách hàng / Sân</th>
-                <th className="px-6 py-4">Thời gian</th>
-                <th className="px-6 py-4">Thanh toán</th>
-                <th className="px-6 py-4">Trạng thái</th>
-                <th className="px-6 py-4 text-right">Thao tác</th>
+              <tr className="bg-[#008200] text-xs font-semibold uppercase tracking-wider text-white border-b border-[#008200]">
+                <th className="px-6 py-1 border-r border-white/20">Khách hàng</th>
+                <th className="px-6 py-1 border-r border-white/20">Sân</th>
+                <th className="px-6 py-1 border-r border-white/20">Ngày đặt</th>
+                <th className="px-6 py-1 border-r border-white/20">Giờ đặt</th>
+                <th className="px-6 py-1 border-r border-white/20">Thanh toán</th>
+                <th className="px-6 py-1 border-r border-white/20">Trạng thái</th>
+                <th className="px-6 py-1 text-right">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="">
               {loading ? (
                 [1,2,3].map(i => (
                   <tr key={i} className="animate-pulse">
-                    <td colSpan="5" className="px-6 py-8">
+                    <td colSpan="7" className="px-6 py-8">
                       <div className="h-10 bg-gray-100 rounded-xl w-full"></div>
                     </td>
                   </tr>
                 ))
               ) : filteredBookings.map((booking) => (
-                <tr key={booking.id} className="hover:bg-gray-50/80 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <User size={12} className="text-[#00c853]" />
-                        <span className="text-xs font-black text-[#0d1117] uppercase tracking-tight">
-                          {booking.profiles?.username || 'Khách vãng lai'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin size={12} className="text-gray-400" />
-                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                          {booking.courts?.name || 'Chưa rõ sân'}
-                        </span>
-                      </div>
+                <tr key={booking.id} className="hover:bg-yellow-100 transition-colors">
+                  <td className="px-6 py-1 border-r border-b border-green-200">
+                    <span className="text-xs font-medium text-black uppercase tracking-tight">
+                      {booking.booker_name || 'Khách vãng lai'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-1 border-r border-b border-green-200">
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <MapPin size={12} className="text-gray-400" />
+                      <span className="text-[10px] font-medium uppercase tracking-wider">
+                        {booking.court?.name || 'Chưa rõ sân'}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <CalendarIcon size={12} className="text-gray-400" />
-                        <span className="text-[10px] font-bold text-gray-700">
-                          {format(new Date(booking.booking_date), 'dd/MM/yyyy', { locale: vi })}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[#008200]">
-                        <Clock size={12} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">
-                          {booking.start_time?.slice(0, 5)} - {booking.end_time?.slice(0, 5)}
-                        </span>
-                      </div>
+                  <td className="px-6 py-1 border-r border-b border-green-200">
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <CalendarIcon size={12} className="text-gray-400" />
+                      <span className="text-[10px] font-medium">
+                        {booking.date ? format(new Date(booking.date), 'dd/MM/yyyy', { locale: vi }) : '—'}
+                      </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-[#0d1117] font-black text-xs">
+                  <td className="px-6 py-1 border-r border-b border-green-200">
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <Clock size={12} className="text-gray-400" />
+                      <span className="text-[10px] font-medium uppercase tracking-wider">
+                        {booking.time_start?.slice(0, 5)} - {booking.time_end?.slice(0, 5)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-1 border-r border-b border-green-200">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-black">
                       <CreditCard size={14} className="text-gray-400" />
                       {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(booking.total_price || 0)}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-1 border-r border-b border-green-200">
                     {getStatusBadge(booking.status)}
                   </td>
-                  <td className="px-6 py-4 text-right">
+                  <td className="px-6 py-1 border-b border-green-200 text-right">
                     <div className="flex items-center justify-end gap-2">
                       {booking.status === 'pending' && (
                         <>
-                          <button 
-                            onClick={() => updateStatus(booking.id, 'confirmed')}
-                            className="p-2 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-all"
+                          <button
+                            onClick={() => confirmBooking(booking.id)}
+                            className="p-1.5 bg-green-50 text-green-600 hover:bg-green-100 rounded-lg transition-all"
                             title="Xác nhận"
                           >
-                            <CheckCircle2 size={16} />
+                            <CheckCircle2 size={14} />
                           </button>
-                          <button 
-                            onClick={() => updateStatus(booking.id, 'cancelled')}
-                            className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-all"
+                          <button
+                            onClick={() => cancelBooking(booking.id)}
+                            className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-all"
                             title="Hủy"
                           >
-                            <XCircle size={16} />
+                            <XCircle size={14} />
                           </button>
                         </>
                       )}
-                      <button className="p-2 text-gray-400 hover:text-[#00c853] hover:bg-gray-100 rounded-lg transition-all">
-                        <MoreVertical size={16} />
-                      </button>
                     </div>
                   </td>
                 </tr>

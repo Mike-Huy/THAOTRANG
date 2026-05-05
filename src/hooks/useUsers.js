@@ -26,6 +26,7 @@ export function useUsers() {
     const { data, error } = await supabase
       .from('ttq6_profiles')
       .select('*')
+      .neq('role', 'super_admin')
       .order('created_at', { ascending: false });
     if (error) setError(error.message);
     else setUsers(data ?? []);
@@ -74,6 +75,9 @@ export function useUsers() {
   }
 
   async function updateRole(userId, role) {
+    const { data: target } = await supabase
+      .from('ttq6_profiles').select('role').eq('id', userId).single();
+    if (target?.role === 'super_admin') return { error: 'Không thể thay đổi quyền tài khoản này.' };
     const { error } = await supabase
       .from('ttq6_profiles')
       .update({ role })
@@ -83,6 +87,9 @@ export function useUsers() {
   }
 
   async function toggleBan(userId, isBanned) {
+    const { data: target } = await supabase
+      .from('ttq6_profiles').select('role').eq('id', userId).single();
+    if (target?.role === 'super_admin') return { error: 'Không thể khóa tài khoản này.' };
     const { error } = await supabase
       .from('ttq6_profiles')
       .update({ is_banned: isBanned, banned_at: isBanned ? new Date().toISOString() : null })

@@ -56,13 +56,9 @@ export function useActivities({ status, type, limit } = {}) {
   return { activities, loading, error, refetch: fetchActivities, createActivity, updateActivity, deleteActivity };
 }
 
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    + '-' + Date.now();
+function slugify(str) {
+  return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/gi, 'd').toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '').trim()
+    .replace(/\s+/g, '-');
 }

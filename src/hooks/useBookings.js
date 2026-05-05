@@ -11,7 +11,7 @@ export function useBookings({ date, status, courtId } = {}) {
     setLoading(true);
     let query = supabase
       .from('ttq6_bookings')
-      .select('*, court:ttq6_courts(id, name)')
+      .select('*, court:ttq6_courts(id, name, price_per_hour)')
       .order('date', { ascending: false })
       .order('time_start', { ascending: true });
 
@@ -39,7 +39,17 @@ export function useBookings({ date, status, courtId } = {}) {
     fetchCourts();
   }, [fetchBookings, fetchCourts]);
 
-  // Kiểm tra sân còn trống trong khung giờ
+  // Realtime: tự động cập nhật khi có booking mới hoặc thay đổi status
+  useEffect(() => {
+    const channel = supabase
+      .channel('ttq6_bookings_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ttq6_bookings' }, () => {
+        fetchBookings();
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [fetchBookings]);
+
   async function checkAvailability(courtId, date, timeStart, timeEnd) {
     const { data, error } = await supabase
       .from('ttq6_bookings')
@@ -47,7 +57,8 @@ export function useBookings({ date, status, courtId } = {}) {
       .eq('court_id', courtId)
       .eq('date', date)
       .neq('status', 'cancelled')
-      .or(`time_start.lt.${timeEnd},time_end.gt.${timeStart}`);
+      .lt('time_start', timeEnd)
+      .gt('time_end', timeStart);
     return { available: !error && data.length === 0, error };
   }
 
@@ -56,13 +67,23 @@ export function useBookings({ date, status, courtId } = {}) {
     const duration = calcDuration(payload.time_start, payload.time_end);
     const total_price = court ? Math.round(court.price_per_hour * duration) : 0;
 
-    const { data, error } = await supabase
+    console.log('createBooking payload:', { ...payload, total_price });
+
+    if (!payload.court_id) {
+      const err = { message: 'Không xác định được sân, vui lòng chọn lại.' };
+      console.error('createBooking error: court_id missing');
+      return { data: null, error: err };
+    }
+
+    const { error } = await supabase
       .from('ttq6_bookings')
-      .insert({ ...payload, total_price })
-      .select()
-      .single();
-    if (!error) await fetchBookings();
-    return { data, error };
+      .insert({ ...payload, total_price, status: 'pending' });
+    if (error) {
+      console.error('createBooking error:', error);
+      return { data: null, error };
+    }
+    await fetchBookings();
+    return { data: null, error: null };
   }
 
   async function confirmBooking(id, confirmedBy) {
