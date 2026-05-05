@@ -1,0 +1,187 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Search, ShoppingBag, Star, SlidersHorizontal, X } from 'lucide-react';
+import productsImg from '../assets/badminton_products_1777876769461.png';
+
+const Products = () => {
+  const [category, setCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilter, setShowFilter] = useState(false);
+
+  const productData = [
+    { id: 1, name: 'Vợt Yonex Astrox 88D Pro', category: 'racket', price: 4500000, img: productsImg, rating: 5, tag: 'New' },
+    { id: 2, name: 'Cầu Hải Yến S90 (12 quả)', category: 'shuttle', price: 250000, img: productsImg, rating: 4, tag: 'Hot' },
+    { id: 3, name: 'Quấn cán Yonex AC102EX', category: 'accessory', price: 30000, img: productsImg, rating: 5, tag: 'Best' },
+    { id: 4, name: 'Giày Victor SH-P9200', category: 'shoes', price: 2100000, img: productsImg, rating: 4, tag: '-10%' },
+    { id: 5, name: 'Vợt Lining Tectonic 7', category: 'racket', price: 3800000, img: productsImg, rating: 5, tag: 'New' },
+    { id: 6, name: 'Balo Yonex Pro 2024', category: 'accessory', price: 1200000, img: productsImg, rating: 4, tag: 'New' },
+  ];
+
+  const filteredProducts = productData.filter(p =>
+    (category === 'all' || p.category === category) &&
+    p.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const categories = [
+    { id: 'all', label: 'Tất cả sản phẩm', count: productData.length },
+    { id: 'racket', label: 'Vợt cầu lông', count: productData.filter(p => p.category === 'racket').length },
+    { id: 'shuttle', label: 'Quả cầu lông', count: productData.filter(p => p.category === 'shuttle').length },
+    { id: 'shoes', label: 'Giày cầu lông', count: productData.filter(p => p.category === 'shoes').length },
+    { id: 'accessory', label: 'Phụ kiện khác', count: productData.filter(p => p.category === 'accessory').length },
+  ];
+
+  const FilterList = () => (
+    <div className="p-3 flex flex-col gap-1">
+      {categories.map((cat) => (
+        <button
+          key={cat.id}
+          onClick={() => { setCategory(cat.id); setShowFilter(false); }}
+          className={category === cat.id ? 'pill-active' : 'pill-inactive'}
+        >
+          <span>{cat.label}</span>
+          <span
+            className="text-xs font-black px-2 py-0.5 rounded-full"
+            style={category === cat.id
+              ? { background: 'rgba(255,255,255,0.25)', color: '#fff' }
+              : { background: '#f3f4f6', color: '#6b7280' }
+            }
+          >
+            {cat.count}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="products-page pt-12 min-h-screen" style={{ background: 'linear-gradient(180deg, #f0f7f0 0%, #f9fafb 100%)' }}>
+      <section className="py-6 sm:py-8">
+        <div className="container">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 sm:gap-8 mb-6 sm:mb-8">
+            <div>
+              <span className="section-label">Store</span>
+              <h1 className="section-title mt-2">Sản phẩm chính hãng</h1>
+              <p className="text-gray-400 mt-2 max-w-md text-xs sm:text-sm">Trang thiết bị cầu lông tiêu chuẩn thi đấu từ các thương hiệu hàng đầu thế giới.</p>
+            </div>
+            <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-72 md:w-96">
+                <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-[#008200]" size={15} />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm sản phẩm..."
+                  className="input-field pl-9 sm:pl-11 !border-[#008200]/30 focus:!border-[#008200] !shadow-none bg-white w-full"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              {/* Mobile filter toggle */}
+              <button
+                onClick={() => setShowFilter(!showFilter)}
+                className="lg:hidden flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-[#008200]/30 text-[#008200] font-bold text-xs shrink-0"
+              >
+                <SlidersHorizontal size={15} />
+                <span className="hidden sm:inline">Lọc</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile filter drawer */}
+          {showFilter && (
+            <div className="lg:hidden mb-4 rounded-2xl bg-white border border-[#008200]/30 shadow-sm relative">
+              <button
+                onClick={() => setShowFilter(false)}
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-500"
+              >
+                <X size={14} />
+              </button>
+              <FilterList />
+            </div>
+          )}
+
+          {/* Mobile: horizontal scroll pills */}
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-4 lg:hidden scrollbar-hide">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setCategory(cat.id)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
+                  category === cat.id
+                    ? 'bg-[#008200] text-white border-[#008200]'
+                    : 'bg-white text-gray-600 border-gray-200'
+                }`}
+              >
+                {cat.label} ({cat.count})
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10">
+            {/* Sidebar — desktop only */}
+            <div className="hidden lg:block lg:col-span-3">
+              <div className="sticky top-24 rounded-2xl overflow-hidden bg-white border border-[#008200]/30 shadow-sm">
+                <FilterList />
+              </div>
+            </div>
+
+            {/* Product Grid */}
+            <div className="lg:col-span-9">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
+                {filteredProducts.map((p) => (
+                  <motion.div
+                    key={p.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ y: -8 }}
+                    transition={{ duration: 0.3 }}
+                    className="card group cursor-pointer relative !p-3 sm:!p-4 border border-[#008200]/20 hover:border-[#008200]/40 shadow-sm"
+                  >
+                    <div className="absolute top-3 right-3 z-10">
+                      <span className="badge !text-[8px] !px-1.5 !py-0.5">{p.tag}</span>
+                    </div>
+                    <div className="aspect-square mb-3 sm:mb-5 overflow-hidden rounded-xl flex items-center justify-center p-3 sm:p-4"
+                      style={{ background: 'linear-gradient(135deg, #f0faf0, #e8f5e9)' }}>
+                      <img
+                        src={p.img}
+                        alt={p.name}
+                        className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                      />
+                    </div>
+                    <div className="px-0.5 sm:px-1">
+                      <h3 className="font-bold text-[11px] sm:text-sm mb-1.5 sm:mb-2 group-hover:text-[#008200] transition-colors leading-tight line-clamp-2">
+                        {p.name}
+                      </h3>
+                      <div className="flex text-yellow-400 mb-2 sm:mb-4 gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} size={10} fill={s <= p.rating ? 'currentColor' : 'none'} className={s <= p.rating ? '' : 'text-gray-200'} />
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="font-extrabold text-xs sm:text-base" style={{
+                          background: 'linear-gradient(135deg, #00c853, #007a00)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }}>
+                          {p.price.toLocaleString('vi-VN')}đ
+                        </p>
+                        <button
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-white flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
+                          style={{ background: 'linear-gradient(135deg, #00c853, #008200)', boxShadow: '0 4px 12px rgba(0,200,83,0.4)' }}
+                        >
+                          <ShoppingBag size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+export default Products;
