@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
-import { ChevronRight, Star, ArrowRight, Play, Users, Trophy, Award, Zap } from 'lucide-react';
+import { ChevronRight, Star, ArrowRight, Users, Trophy, Award, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useSettings } from '../hooks/useSettings';
+import { useProducts } from '../hooks/useProducts';
 import action1 from '../assets/badminton_action_1_1777876749514.png';
 import products from '../assets/badminton_products_1777876769461.png';
 
@@ -12,41 +14,65 @@ const fadeUp = {
 };
 
 const Home = () => {
+  const { settings } = useSettings();
+  const { products: fetchedProducts } = useProducts({ status: 'active', limit: 4 });
+
   const stats = [
-    { icon: <Users size={26} />, value: '500+', label: 'Học viên' },
-    { icon: <Trophy size={26} />, value: '12', label: 'Giải đấu/năm' },
-    { icon: <Award size={26} />, value: '9', label: 'Sân đạt chuẩn' },
+    { icon: <Users size={26} />, value: settings.home_stats_students || '500+', label: 'Học viên' },
+    { icon: <Trophy size={26} />, value: settings.home_stats_tournaments || '12', label: 'Giải đấu/năm' },
+    { icon: <Award size={26} />, value: settings.home_stats_courts || '9', label: 'Sân đạt chuẩn' },
   ];
 
-  const productList = [
-    { name: 'Vợt Yonex Astrox 88D', price: '4.500.000đ', tag: 'New' },
-    { name: 'Cầu Hải Yến S90', price: '250.000đ', tag: 'Hot' },
-    { name: 'Quấn cán Yonex AC102EX', price: '30.000đ', tag: 'Best Seller' },
-    { name: 'Giày Victor SH-P9200', price: '2.100.000đ', tag: '-10%' },
+  const defaultProductList = [
+    { name: 'Vợt Yonex Astrox 88D', price: 4500000, tag: 'New', image_url: products },
+    { name: 'Cầu Hải Yến S90', price: 250000, tag: 'Hot', image_url: products },
+    { name: 'Quấn cán Yonex AC102EX', price: 30000, tag: 'Best Seller', image_url: products },
+    { name: 'Giày Victor SH-P9200', price: 2100000, tag: '-10%', image_url: products },
   ];
 
-  const partners = ['Yonex', 'Victor', 'Li-Ning', 'Forza', 'Mizuno'];
+  const productList = fetchedProducts && fetchedProducts.length > 0
+    ? fetchedProducts.map(p => ({
+        name: p.name,
+        price: p.price.toLocaleString('vi-VN') + 'đ',
+        tag: p.tag || 'Hot',
+        image_url: p.cover_url || products,
+        rating: p.rating || 5
+      }))
+    : defaultProductList.map(p => ({
+        name: p.name,
+        price: p.price.toLocaleString('vi-VN') + 'đ',
+        tag: p.tag,
+        image_url: p.image_url,
+        rating: 5
+      }));
 
-  const whyUs = [
+  const partners = Array.isArray(settings.home_partners)
+    ? settings.home_partners
+    : ['Yonex', 'Victor', 'Li-Ning', 'Forza', 'Mizuno'];
+
+  const defaultWhyUs = [
     {
-      n: '01',
-      icon: <Zap size={24} />,
       title: 'Sân Chuẩn BWF',
       desc: 'Mặt sân thảm Yonex cao cấp, đèn chiếu sáng chuyên nghiệp, đạt tiêu chuẩn thi đấu quốc tế.',
     },
     {
-      n: '02',
-      icon: <Trophy size={24} />,
       title: 'HLV Chuyên Nghiệp',
       desc: 'Đội ngũ huấn luyện viên cấp quốc gia, có kinh nghiệm thi đấu chuyên nghiệp nhiều năm.',
     },
     {
-      n: '03',
-      icon: <Award size={24} />,
       title: 'Đặt Sân Online 24/7',
       desc: 'Hệ thống đặt sân trực tuyến thông minh, quản lý lịch chơi dễ dàng, nhanh chóng và tiện lợi.',
     },
   ];
+
+  const rawWhyUs = Array.isArray(settings.home_why_us) ? settings.home_why_us : defaultWhyUs;
+  const whyUsIcons = [<Zap size={24} />, <Trophy size={24} />, <Award size={24} />];
+  const whyUs = rawWhyUs.map((item, index) => ({
+    n: String(index + 1).padStart(2, '0'),
+    icon: whyUsIcons[index % whyUsIcons.length] || <Zap size={24} />,
+    title: item.title,
+    desc: item.desc,
+  }));
 
   return (
     <div className="home-page">
@@ -59,7 +85,7 @@ const Home = () => {
           initial={{ scale: 1.08 }}
           animate={{ scale: 1 }}
           transition={{ duration: 12, repeat: Infinity, repeatType: 'reverse', ease: 'linear' }}
-          src={action1}
+          src={settings.home_hero_image_url || action1}
           alt="Hero"
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -68,7 +94,7 @@ const Home = () => {
             initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.9, delay: 0.2 }}
-            className="w-full text-left max-w-xl"
+            className="w-full text-left max-w-2xl"
           >
             <div className="flex items-center gap-3 mb-3 sm:mb-4">
               <div className="h-[2px] w-6 sm:w-8 rounded-full" style={{ background: 'linear-gradient(90deg, #00c853, #008200)' }} />
@@ -76,22 +102,28 @@ const Home = () => {
                 International Standard
               </span>
             </div>
-            <h1 className="text-xl sm:text-3xl md:text-4xl font-black text-white uppercase leading-tight mb-3 sm:mb-4">
-              NÂNG TẦM <span className="gradient-text">ĐAM MÊ</span> CẦU LÔNG
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-black text-white uppercase leading-tight mb-3 sm:mb-4 sm:whitespace-nowrap">
+              {settings.home_hero_title ? (
+                settings.home_hero_title.includes('ĐAM MÊ') ? (
+                  <>
+                    {settings.home_hero_title.split('ĐAM MÊ')[0]}
+                    <span className="gradient-text">ĐAM MÊ</span>
+                    {settings.home_hero_title.split('ĐAM MÊ')[1]}
+                  </>
+                ) : (
+                  settings.home_hero_title
+                )
+              ) : (
+                <>NÂNG TẦM <span className="gradient-text">ĐAM MÊ</span> CẦU LÔNG</>
+              )}
             </h1>
             <p className="text-white/80 text-xs leading-relaxed mb-4 sm:mb-5 max-w-sm sm:max-w-lg">
-              Hệ thống sân bãi đạt chuẩn quốc tế cùng đội ngũ huấn luyện viên chuyên nghiệp hàng đầu Việt Nam.
+              {settings.home_hero_subtitle || 'Hệ thống sân bãi đạt chuẩn quốc tế cùng đội ngũ huấn luyện viên chuyên nghiệp hàng đầu Việt Nam.'}
             </p>
             <div className="flex flex-wrap items-center gap-3 sm:gap-4">
               <Link to="/dat-san" className="btn-primary !px-4 sm:!px-5 !py-2 sm:!py-2.5 !text-[10px]">
                 Đặt sân ngay <ChevronRight size={14} />
               </Link>
-              <button className="flex items-center gap-2 sm:gap-3 text-white font-bold text-xs hover:text-[#00e676] transition-colors group">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-white/30 bg-white/10 backdrop-blur-sm flex items-center justify-center group-hover:border-[#00c853] group-hover:bg-[rgba(0,200,83,0.1)] transition-all duration-300">
-                  <Play size={13} fill="currentColor" />
-                </div>
-                Xem video
-              </button>
             </div>
           </motion.div>
         </div>
@@ -189,12 +221,19 @@ const Home = () => {
                   <span className="badge !text-[8px] !px-2 !py-0.5">{p.tag}</span>
                 </div>
                 <div className="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
-                  <img src={products} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <img src={p.image_url || products} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 </div>
                 <div className="p-3 sm:p-4">
                   <h3 className="font-bold text-[11px] sm:text-xs text-gray-800 mb-2 group-hover:text-[#008200] transition-colors line-clamp-2 leading-tight">{p.name}</h3>
                   <div className="flex gap-0.5 text-yellow-400 mb-2 sm:mb-3">
-                    {[1, 2, 3, 4, 5].map(s => <Star key={s} size={9} fill="currentColor" />)}
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <Star 
+                        key={s} 
+                        size={9} 
+                        fill={s <= (p.rating || 5) ? 'currentColor' : 'none'} 
+                        className={s <= (p.rating || 5) ? '' : 'text-gray-200'} 
+                      />
+                    ))}
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="font-black text-xs sm:text-sm" style={{

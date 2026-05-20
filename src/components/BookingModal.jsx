@@ -1,24 +1,31 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, Clock, MapPin, User, Phone, FileText, Loader2 } from 'lucide-react';
+import { X, Calendar, Clock, MapPin, User, Phone, FileText, Loader2, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useAuth } from '../hooks/useAuth';
 
 const BookingModal = ({ open, onClose, slot, court, onSubmit }) => {
+  const { user, profile } = useAuth();
   const [form, setForm] = useState({ booker_name: '', booker_phone: '', booker_email: '', notes: '' });
   const [timeStart, setTimeStart] = useState('');
   const [timeEnd, setTimeEnd]     = useState('');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
 
-  // Khi slot thay đổi (click ô mới), reset form và điền giờ đề xuất
+  // Khi slot thay đổi hoặc profile thay đổi, reset form và điền giờ đề xuất
   useEffect(() => {
     if (!slot) return;
-    setForm({ booker_name: '', booker_phone: '', booker_email: '', notes: '' });
+    setForm({
+      booker_name: profile?.full_name || profile?.username || user?.email?.split('@')[0] || '',
+      booker_phone: profile?.phone || '',
+      booker_email: user?.email || '',
+      notes: ''
+    });
     setTimeStart(slot.timeStart || '');
     setTimeEnd(slot.timeEnd || '');
     setError('');
-  }, [slot]);
+  }, [slot, profile, user]);
 
   const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
 
@@ -40,6 +47,7 @@ const BookingModal = ({ open, onClose, slot, court, onSubmit }) => {
         date: slot.date,
         time_start: timeStart,
         time_end: timeEnd,
+        user_id: user?.id || null,
         ...form,
       });
       const submitError = result?.error;
@@ -118,7 +126,24 @@ const BookingModal = ({ open, onClose, slot, court, onSubmit }) => {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              {/* Auth status note */}
+              {user ? (
+                <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-2 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">
+                    Đang đặt sân bằng tài khoản của bạn ({user.email})
+                  </span>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-2 flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">
+                    Bạn đang đặt sân dưới tư cách khách vãng lai
+                  </span>
+                </div>
+              )}
+
               {/* Giờ */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -179,6 +204,18 @@ const BookingModal = ({ open, onClose, slot, court, onSubmit }) => {
                 <input
                   name="booker_phone" value={form.booker_phone} onChange={handleChange}
                   placeholder="0901 234 567" type="tel"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#008200] focus:ring-2 focus:ring-[#008200]/10"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1.5">
+                  <Mail size={10} className="inline mr-1" />Email
+                </label>
+                <input
+                  name="booker_email" value={form.booker_email} onChange={handleChange}
+                  placeholder="email@example.com" type="email"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#008200] focus:ring-2 focus:ring-[#008200]/10"
                 />
               </div>

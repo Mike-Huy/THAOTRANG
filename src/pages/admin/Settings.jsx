@@ -16,10 +16,122 @@ import {
   Users,
   Settings as SettingsIcon,
   ChevronRight,
-  Plus
+  Plus,
+  Trash,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// Trình chỉnh sửa danh sách JSON động (milestones, why_us)
+const ListEditor = ({ items = [], onChange, fields = [] }) => {
+  const handleItemChange = (index, key, val) => {
+    const updated = [...items];
+    updated[index] = { ...updated[index], [key]: val };
+    onChange(updated);
+  };
+
+  const handleAddItem = () => {
+    const newItem = {};
+    fields.forEach(f => { newItem[f.key] = f.default || ''; });
+    onChange([...items, newItem]);
+  };
+
+  const handleRemoveItem = (index) => {
+    const updated = items.filter((_, i) => i !== index);
+    onChange(updated);
+  };
+
+  const handleMoveItem = (index, direction) => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === items.length - 1) return;
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const updated = [...items];
+    const temp = updated[index];
+    updated[index] = updated[targetIndex];
+    updated[targetIndex] = temp;
+    onChange(updated);
+  };
+
+  const currentItems = Array.isArray(items) ? items : [];
+
+  return (
+    <div className="space-y-4">
+      {currentItems.map((item, index) => (
+        <div 
+          key={index} 
+          className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 space-y-3 relative group transition-all hover:bg-gray-50 hover:border-gray-300"
+        >
+          {/* Action buttons */}
+          <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              type="button"
+              onClick={() => handleMoveItem(index, 'up')}
+              disabled={index === 0}
+              className="p-1.5 rounded-lg bg-white hover:bg-gray-100 text-gray-500 disabled:opacity-30 border border-gray-200 transition-all"
+            >
+              <ArrowUp size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleMoveItem(index, 'down')}
+              disabled={index === currentItems.length - 1}
+              className="p-1.5 rounded-lg bg-white hover:bg-gray-100 text-gray-500 disabled:opacity-30 border border-gray-200 transition-all"
+            >
+              <ArrowDown size={12} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRemoveItem(index)}
+              className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 transition-all"
+            >
+              <Trash size={12} />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 pr-24">
+            {fields.map(f => (
+              <div key={f.key} className="space-y-1">
+                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{f.label}</label>
+                {f.type === 'textarea' ? (
+                  <textarea
+                    rows={2}
+                    className="input-field min-h-[60px] resize-none"
+                    value={item[f.key] || ''}
+                    onChange={(e) => handleItemChange(index, f.key, e.target.value)}
+                    placeholder={f.placeholder}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    className="input-field"
+                    value={item[f.key] || ''}
+                    onChange={(e) => handleItemChange(index, f.key, e.target.value)}
+                    placeholder={f.placeholder}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      {currentItems.length === 0 && (
+        <p className="text-center py-4 text-xs text-gray-400 font-bold uppercase tracking-wider border border-dashed border-gray-200 rounded-xl">
+          Chưa có mục nào. Hãy bấm thêm mục mới bên dưới.
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={handleAddItem}
+        className="w-full flex items-center justify-center gap-2 p-3 border-2 border-dashed border-[#00c853]/30 hover:border-[#00c853]/60 rounded-xl text-xs font-black text-[#00c853] uppercase tracking-widest bg-green-50/10 hover:bg-green-50/30 transition-all duration-300"
+      >
+        <Plus size={14} />
+        <span>Thêm mục mới</span>
+      </button>
+    </div>
+  );
+};
 
 const Settings = () => {
   const { settings, loading, error, updateMany } = useSettings();
@@ -37,28 +149,43 @@ const Settings = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    const { error } = await updateMany(formData);
+    
+    // Đảm bảo tất cả các dữ liệu dạng Mảng hoặc Object sẽ được chuyển về JSON String trước khi ghi xuống
+    const processedFormData = {};
+    Object.entries(formData).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        processedFormData[key] = JSON.stringify(value);
+      } else {
+        processedFormData[key] = value;
+      }
+    });
+
+    const { error } = await updateMany(processedFormData);
     if (error) alert('Lỗi: ' + error);
-    else alert('Đã lưu cài đặt hệ thống!');
+    else alert('Đã lưu cấu hình hệ thống thành công!');
     setIsSaving(false);
   };
 
+  if (loading) return <div className="p-10 text-gray-500 font-bold uppercase text-[10px] tracking-widest animate-pulse">Đang tải cấu hình cài đặt...</div>;
   if (error) return <div className="p-4 text-red-500 bg-red-50 rounded-xl border border-red-100 font-bold uppercase text-[10px] tracking-widest">{error}</div>;
 
   const tabs = [
     { id: 'permissions', label: 'Phân quyền', icon: Shield, description: 'Quản lý quyền truy cập menu và chức năng' },
-    { id: 'general', label: 'Cài đặt chung', icon: SettingsIcon, description: 'Cấu hình thông tin cơ bản của website' },
+    { id: 'general', label: 'Cơ bản', icon: SettingsIcon, description: 'Cấu hình thông tin cơ bản' },
+    { id: 'home', label: 'Trang chủ', icon: Globe, description: 'Nội dung hiển thị ngoài Trang chủ' },
+    { id: 'about', label: 'Giới thiệu', icon: Globe, description: 'Nội dung hiển thị ngoài trang Giới thiệu' },
     { id: 'roles', label: 'ROLE', icon: Users, description: 'Quản lý nhóm quyền và gán quyền cho user' },
   ];
 
-  const sections = [
+  // Các trường cài đặt cơ bản
+  const generalSections = [
     {
       id: 'general_info',
       title: 'Thông tin chung',
       icon: Globe,
       fields: [
         { key: 'site_name', label: 'Tên Website', type: 'text', placeholder: 'VD: Thảo Trang Badminton' },
-        { key: 'site_description', label: 'Mô tả ngắn', type: 'textarea', placeholder: 'Mô tả cho SEO...' },
+        { key: 'site_tagline', label: 'Slogan / Khẩu hiệu', type: 'text', placeholder: 'Slogan...' },
       ]
     },
     {
@@ -69,15 +196,17 @@ const Settings = () => {
         { key: 'contact_phone', label: 'Số điện thoại', type: 'text', icon: Phone },
         { key: 'contact_email', label: 'Email liên hệ', type: 'text', icon: Mail },
         { key: 'contact_address', label: 'Địa chỉ', type: 'text', icon: MapPin },
+        { key: 'contact_map_url', label: 'Google Maps Link', type: 'text', icon: MapPin },
       ]
     },
     {
       id: 'business',
-      title: 'Vận hành & Giá cả',
+      title: 'Vận hành',
       icon: Clock,
       fields: [
-        { key: 'opening_hours', label: 'Giờ mở cửa', type: 'text', placeholder: 'VD: 05:00 - 22:00' },
-        { key: 'price_per_hour', label: 'Giá sân mặc định (/giờ)', type: 'number', icon: DollarSign },
+        { key: 'business_hours', label: 'Giờ hoạt động', type: 'text', placeholder: 'VD: 06:00 - 22:00' },
+        { key: 'booking_open_days', label: 'Đặt trước tối đa (ngày)', type: 'number' },
+        { key: 'booking_min_hours', label: 'Giờ đặt tối thiểu', type: 'number' },
       ]
     },
     {
@@ -86,7 +215,8 @@ const Settings = () => {
       icon: Share2,
       fields: [
         { key: 'social_facebook', label: 'Facebook URL', type: 'text', icon: Share2 },
-        { key: 'social_instagram', label: 'Instagram URL', type: 'text', icon: AtSign },
+        { key: 'social_zalo', label: 'Số Zalo', type: 'text', icon: Phone },
+        { key: 'social_tiktok', label: 'TikTok URL', type: 'text', icon: AtSign },
       ]
     }
   ];
@@ -96,7 +226,7 @@ const Settings = () => {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-black text-[#0d1117] uppercase tracking-tight">Cấu hình hệ thống</h1>
-        <p className="text-gray-500 text-sm">Quản lý quyền hạn, cài đặt website và phân vai trò người dùng.</p>
+        <p className="text-gray-500 text-sm">Quản lý nội dung website public, quyền hạn và phân vai trò người dùng.</p>
       </div>
 
       {/* Tab Navigation */}
@@ -105,7 +235,7 @@ const Settings = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
               activeTab === tab.id 
                 ? 'bg-white text-[#00c853] shadow-sm ring-1 ring-black/5' 
                 : 'text-gray-500 hover:text-gray-900'
@@ -125,9 +255,10 @@ const Settings = () => {
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
         >
+          {/* TAB 1: GENERAL SETTINGS */}
           {activeTab === 'general' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {sections.map(section => (
+              {generalSections.map(section => (
                 <div key={section.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                   <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
@@ -166,6 +297,312 @@ const Settings = () => {
             </div>
           )}
 
+          {/* TAB 2: HOME PAGE CONTENT */}
+          {activeTab === 'home' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Cấu hình Hero Banner */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
+                      <Globe size={18} />
+                    </div>
+                    <h3 className="font-black text-[#0d1117] text-xs uppercase tracking-widest">Nội dung Banner chính (Hero)</h3>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tiêu đề Banner</label>
+                      <input 
+                        type="text" 
+                        className="input-field"
+                        value={formData['home_hero_title'] || ''}
+                        onChange={(e) => handleChange('home_hero_title', e.target.value)}
+                        placeholder="VD: NÂNG TẦM ĐAM MÊ CẦU LÔNG"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mô tả Banner</label>
+                      <textarea 
+                        className="input-field min-h-[100px] resize-none"
+                        value={formData['home_hero_subtitle'] || ''}
+                        onChange={(e) => handleChange('home_hero_subtitle', e.target.value)}
+                        placeholder="Nội dung mô tả ngắn xuất hiện dưới tiêu đề..."
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">URL ảnh nền Banner</label>
+                      <input 
+                        type="text" 
+                        className="input-field"
+                        value={formData['home_hero_image_url'] || ''}
+                        onChange={(e) => handleChange('home_hero_image_url', e.target.value)}
+                        placeholder="Để trống để sử dụng hình ảnh mặc định..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Why Choose Us (Trang chủ) */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <h3 className="font-black text-[#0d1117] text-xs uppercase tracking-widest">Đặc sắc / Lý do chọn (Trang chủ)</h3>
+                  </div>
+                  <div className="p-6">
+                    <ListEditor
+                      items={formData['home_why_us'] || []}
+                      onChange={(val) => handleChange('home_why_us', val)}
+                      fields={[
+                        { key: 'title', label: 'Tiêu đề cột', placeholder: 'VD: Sân Chuẩn BWF' },
+                        { key: 'desc', label: 'Nội dung chi tiết', type: 'textarea', placeholder: 'Mô tả ngắn gọn về đặc sắc này...' }
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Stats Section */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
+                      <Clock size={18} />
+                    </div>
+                    <h3 className="font-black text-[#0d1117] text-xs uppercase tracking-widest">Chỉ số nổi bật</h3>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Số học viên</label>
+                      <input 
+                        type="text" 
+                        className="input-field"
+                        value={formData['home_stats_students'] || ''}
+                        onChange={(e) => handleChange('home_stats_students', e.target.value)}
+                        placeholder="VD: 500+"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Số giải đấu/năm</label>
+                      <input 
+                        type="text" 
+                        className="input-field"
+                        value={formData['home_stats_tournaments'] || ''}
+                        onChange={(e) => handleChange('home_stats_tournaments', e.target.value)}
+                        placeholder="VD: 12"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Số sân đạt chuẩn BWF</label>
+                      <input 
+                        type="text" 
+                        className="input-field"
+                        value={formData['home_stats_courts'] || ''}
+                        onChange={(e) => handleChange('home_stats_courts', e.target.value)}
+                        placeholder="VD: 9"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Partners List */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
+                      <Users size={18} />
+                    </div>
+                    <h3 className="font-black text-[#0d1117] text-xs uppercase tracking-widest">Đối tác chiến lược</h3>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Danh sách (ngăn cách bởi dấu phẩy)</label>
+                      <input 
+                        type="text" 
+                        className="input-field"
+                        value={Array.isArray(formData['home_partners']) ? formData['home_partners'].join(', ') : (formData['home_partners'] || '')}
+                        onChange={(e) => {
+                          const arr = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                          handleChange('home_partners', arr);
+                        }}
+                        placeholder="VD: Yonex, Victor, Li-Ning"
+                      />
+                      <p className="text-[9px] text-gray-400">Các đối tác này sẽ hiển thị cuộn chéo ở chân trang chủ.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: ABOUT PAGE CONTENT */}
+          {activeTab === 'about' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                {/* Giới thiệu chung */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
+                      <Globe size={18} />
+                    </div>
+                    <h3 className="font-black text-[#0d1117] text-xs uppercase tracking-widest">Giới thiệu chung</h3>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tiêu đề Giới thiệu</label>
+                      <input 
+                        type="text" 
+                        className="input-field"
+                        value={formData['about_title'] || ''}
+                        onChange={(e) => handleChange('about_title', e.target.value)}
+                        placeholder="VD: THAOTRANG GROUP - ĐA NGÀNH NGHỀ..."
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đoạn giới thiệu 1</label>
+                      <textarea 
+                        rows={4}
+                        className="input-field min-h-[120px] resize-none"
+                        value={formData['about_description_p1'] || ''}
+                        onChange={(e) => handleChange('about_description_p1', e.target.value)}
+                        placeholder="Mô tả quá trình hình thành..."
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Đoạn giới thiệu 2</label>
+                      <textarea 
+                        rows={2}
+                        className="input-field min-h-[80px] resize-none"
+                        value={formData['about_description_p2'] || ''}
+                        onChange={(e) => handleChange('about_description_p2', e.target.value)}
+                        placeholder="Mô tả phương châm phục vụ..."
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">URL Ảnh Giới thiệu</label>
+                      <input 
+                        type="text" 
+                        className="input-field"
+                        value={formData['about_image_url'] || ''}
+                        onChange={(e) => handleChange('about_image_url', e.target.value)}
+                        placeholder="Hình ảnh minh họa trang giới thiệu..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Milestones (Hành trình) */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
+                      <Clock size={18} />
+                    </div>
+                    <h3 className="font-black text-[#0d1117] text-xs uppercase tracking-widest">Hành trình & Cột mốc phát triển</h3>
+                  </div>
+                  <div className="p-6">
+                    <ListEditor
+                      items={formData['about_milestones'] || []}
+                      onChange={(val) => handleChange('about_milestones', val)}
+                      fields={[
+                        { key: 'year', label: 'Năm cột mốc', placeholder: 'VD: 2026' },
+                        { key: 'title', label: 'Tiêu đề cột mốc', placeholder: 'VD: Thành lập Thảo Trang' },
+                        { key: 'desc', label: 'Nội dung cột mốc', type: 'textarea', placeholder: 'Mô tả chi tiết về cột mốc này...' }
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {/* Giá trị cốt lõi */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <h3 className="font-black text-[#0d1117] text-xs uppercase tracking-widest">Sứ mệnh - Tầm nhìn</h3>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    {/* Sứ mệnh */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-[#00c853] uppercase tracking-widest">Sứ mệnh</label>
+                      <input 
+                        type="text"
+                        className="input-field font-bold"
+                        value={formData['about_mission_title'] || ''}
+                        onChange={(e) => handleChange('about_mission_title', e.target.value)}
+                        placeholder="Tiêu đề Sứ mệnh"
+                      />
+                      <textarea 
+                        className="input-field min-h-[60px] mt-1 text-xs"
+                        value={formData['about_mission_desc'] || ''}
+                        onChange={(e) => handleChange('about_mission_desc', e.target.value)}
+                        placeholder="Nội dung Sứ mệnh..."
+                      />
+                    </div>
+                    <hr className="border-gray-100" />
+                    {/* Tầm nhìn */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-[#00c853] uppercase tracking-widest">Tầm nhìn</label>
+                      <input 
+                        type="text"
+                        className="input-field font-bold"
+                        value={formData['about_vision_title'] || ''}
+                        onChange={(e) => handleChange('about_vision_title', e.target.value)}
+                        placeholder="Tiêu đề Tầm nhìn"
+                      />
+                      <textarea 
+                        className="input-field min-h-[60px] mt-1 text-xs"
+                        value={formData['about_vision_desc'] || ''}
+                        onChange={(e) => handleChange('about_vision_desc', e.target.value)}
+                        placeholder="Nội dung Tầm nhìn..."
+                      />
+                    </div>
+                    <hr className="border-gray-100" />
+                    {/* Giá trị cốt lõi */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-black text-[#00c853] uppercase tracking-widest">Giá trị cốt lõi</label>
+                      <input 
+                        type="text"
+                        className="input-field font-bold"
+                        value={formData['about_values_title'] || ''}
+                        onChange={(e) => handleChange('about_values_title', e.target.value)}
+                        placeholder="Tiêu đề Giá trị cốt lõi"
+                      />
+                      <textarea 
+                        className="input-field min-h-[60px] mt-1 text-xs"
+                        value={formData['about_values_desc'] || ''}
+                        onChange={(e) => handleChange('about_values_desc', e.target.value)}
+                        placeholder="Nội dung Giá trị..."
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Why Us (Trang giới thiệu) */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <h3 className="font-black text-[#0d1117] text-xs uppercase tracking-widest">Lý do chọn (Giới thiệu)</h3>
+                  </div>
+                  <div className="p-6">
+                    <ListEditor
+                      items={formData['about_why_us'] || []}
+                      onChange={(val) => handleChange('about_why_us', val)}
+                      fields={[
+                        { key: 'title', label: 'Lý do', placeholder: 'VD: Chất lượng hàng đầu' },
+                        { key: 'desc', label: 'Giải thích chi tiết', type: 'textarea', placeholder: 'Mô tả ngắn...' }
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: PERMISSIONS */}
           {activeTab === 'permissions' && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center space-y-4">
               <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto text-blue-500">
@@ -185,6 +622,7 @@ const Settings = () => {
             </div>
           )}
 
+          {/* TAB 5: ROLES */}
           {activeTab === 'roles' && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center space-y-4">
               <div className="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mx-auto text-purple-500">

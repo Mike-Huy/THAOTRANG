@@ -153,7 +153,7 @@ const Products = () => {
                       <div className="aspect-square mb-3 sm:mb-5 overflow-hidden rounded-xl flex items-center justify-center p-3 sm:p-4"
                         style={{ background: 'linear-gradient(135deg, #f0faf0, #e8f5e9)' }}>
                         <img
-                          src={p.image_url || productsImg}
+                          src={p.cover_url || productsImg}
                           alt={p.name}
                           className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
                         />

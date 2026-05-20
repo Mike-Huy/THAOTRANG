@@ -449,3 +449,45 @@ Tài khoản `super_admin` hiển thị trong danh sách người dùng và có 
 - Database RLS — bảo vệ tầng DB nằm ngoài phạm vi code frontend
 
 ====== KA - SESSION 5 END ======
+
+---
+
+====== KA - SESSION 6 [2026-05-20] ======
+
+## UI Fix: Hiển thị tiêu đề Hero trên 1 dòng & Bỏ nút Xem video
+
+### Yêu cầu từ MIKE
+1. Căn chỉnh tiêu đề "NÂNG TẦM ĐAM MÊ CẦU LÔNG" tại phần Hero hiển thị gọn gàng trên cùng 1 dòng trên màn hình lớn.
+2. Loại bỏ nút "Xem video" kế bên nút "Đặt sân ngay" trong Hero section.
+
+### Files đã sửa
+
+| File | Thay đổi chính |
+|---|---|
+| `src/pages/Home.jsx` | Thêm `sm:whitespace-nowrap` vào thẻ `h1` tiêu đề để tránh bị xuống dòng ở các màn hình từ `sm` trở lên. Tăng `max-w-xl` thành `max-w-2xl` ở thẻ div bao quanh để đảm bảo đủ chiều ngang cho text. Xóa bỏ thẻ button "Xem video". Gỡ bỏ import `Play` không còn sử dụng từ `lucide-react`. |
+
+====== KA - SESSION 6 END ======
+
+---
+
+====== KA - SESSION 7 [2026-05-20] ======
+
+## CMS: Động hóa toàn bộ nội dung Trang chủ & Trang giới thiệu (Settings CMS)
+
+### Yêu cầu từ MIKE
+1. Động hóa toàn bộ các khối nội dung tĩnh ngoài Trang chủ và Trang giới thiệu bằng cơ sở dữ liệu Supabase.
+2. Cho phép chỉnh sửa trực tiếp, trực quan toàn bộ các khối nội dung này tại trang quản trị Cấu hình (Settings) của Admin.
+
+### Các thành phần đã triển khai
+
+| Thành phần | Loại | Mô tả |
+|---|---|---|
+| `sql/03_dynamic_content_settings.sql` | SQL Migration | Seed cấu hình tĩnh mặc định cho trang chủ và giới thiệu vào bảng `ttq6_settings` (Hero, Stats, Partners, Why Us, Core Values, Milestones...) |
+| `src/pages/admin/Settings.jsx` | React Component | Tích hợp hai Tab Trang chủ và Giới thiệu chuyên sâu, cung cấp `ListEditor` tương tác để thêm, xóa, sắp xếp thứ tự và cập nhật dữ liệu JSON phức tạp |
+| `src/pages/Home.jsx` | React Component | Động hóa hoàn toàn banner Hero, stats, partners, whyChooseUs từ database cùng 4 sản phẩm bán chạy thực tế được query từ `useProducts` |
+| `src/pages/About.jsx` | React Component | Động hóa nội dung Intro, Core Values (Mission, Vision, Values), Timeline Milestones và Why Choose Us từ database cài đặt |
+
+### Kết quả kiểm thử
+- Chạy lệnh `npm run build` thành công trong `1.56 giây` mà không phát sinh bất kỳ lỗi biên dịch hay cảnh báo cú pháp nghiêm trọng nào.
+
+====== KA - SESSION 7 END ======
