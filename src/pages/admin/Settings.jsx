@@ -224,11 +224,16 @@ const Settings = () => {
         { title: 'Luyện tập hàng ngày', image_url: '' },
         { title: 'Cộng đồng badminton', image_url: '' }
       ];
+
+      // Chuẩn hóa gallery: chấp nhận cả array lẫn JSON string (dữ liệu cũ bị lưu sai type)
+      let gallery = settings.home_gallery;
+      if (typeof gallery === 'string') {
+        try { gallery = JSON.parse(gallery); } catch { gallery = null; }
+      }
+
       setFormData({
         ...settings,
-        home_gallery: (Array.isArray(settings.home_gallery) && settings.home_gallery.length > 0)
-          ? settings.home_gallery
-          : defaultGallery
+        home_gallery: (Array.isArray(gallery) && gallery.length > 0) ? gallery : defaultGallery,
       });
     }
   }, [settings]);

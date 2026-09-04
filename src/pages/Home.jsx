@@ -46,8 +46,12 @@ const Home = () => {
         rating: 5
       }));
 
-  const partners = Array.isArray(settings.home_partners)
-    ? settings.home_partners
+  let parsedPartners = settings.home_partners;
+  if (typeof parsedPartners === 'string') {
+    try { parsedPartners = JSON.parse(parsedPartners); } catch { parsedPartners = null; }
+  }
+  const partners = Array.isArray(parsedPartners) && parsedPartners.length > 0
+    ? parsedPartners
     : ['Yonex', 'Victor', 'Li-Ning', 'Forza', 'Mizuno'];
 
   const defaultWhyUs = [
@@ -72,6 +76,26 @@ const Home = () => {
     icon: whyUsIcons[index % whyUsIcons.length] || <Zap size={24} />,
     title: item.title,
     desc: item.desc,
+  }));
+
+  const defaultGallery = [
+    { title: 'Giải đấu chuyên nghiệp', image_url: action1 },
+    { title: 'Luyện tập hàng ngày', image_url: action1 },
+    { title: 'Cộng đồng badminton', image_url: action1 },
+  ];
+
+  // Chấp nhận cả array lẫn JSON string (phòng trường hợp DB có type sai)
+  let parsedGallery = settings.home_gallery;
+  if (typeof parsedGallery === 'string') {
+    try { parsedGallery = JSON.parse(parsedGallery); } catch { parsedGallery = null; }
+  }
+  const rawGallery = Array.isArray(parsedGallery) && parsedGallery.length > 0
+    ? parsedGallery
+    : defaultGallery;
+
+  const galleryItems = rawGallery.map((item, index) => ({
+    title: item.title || defaultGallery[index]?.title || `Hoạt động ${index + 1}`,
+    image_url: item.image_url || action1,
   }));
 
   return (
@@ -160,33 +184,30 @@ const Home = () => {
             <div className="section-divider mt-2" />
           </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            {[
-              { title: 'Giải đấu chuyên nghiệp' },
-              { title: 'Luyện tập hàng ngày' },
-              { title: 'Cộng đồng badminton' },
-            ].map((item, i) => (
-              <motion.div
-                key={i}
-                {...fadeUp}
-                transition={{ duration: 0.6, delay: i * 0.15 }}
-                className="h-[220px] sm:h-[260px] md:h-[300px] rounded-2xl overflow-hidden relative group cursor-pointer"
-                style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}
-              >
-                <img src={action1} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-white font-bold text-sm">{item.title}</h3>
-                    <span
-                      className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-3 group-hover:translate-x-0"
-                      style={{ background: 'linear-gradient(135deg, #00c853, #008200)' }}
-                    >
-                      Xem thêm <ArrowRight size={10} />
-                    </span>
+            {galleryItems.map((item, i) => (
+              <Link to="/hoat-dong" key={i} className="block">
+                <motion.div
+                  {...fadeUp}
+                  transition={{ duration: 0.6, delay: i * 0.15 }}
+                  className="h-[220px] sm:h-[260px] md:h-[300px] rounded-2xl overflow-hidden relative group cursor-pointer"
+                  style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}
+                >
+                  <img src={item.image_url || action1} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-white font-bold text-sm">{item.title}</h3>
+                      <span
+                        className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-3 group-hover:translate-x-0"
+                        style={{ background: 'linear-gradient(135deg, #00c853, #008200)' }}
+                      >
+                        Xem thêm <ArrowRight size={10} />
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="absolute inset-0 rounded-2xl border-2 border-[#00c853] opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
-              </motion.div>
+                  <div className="absolute inset-0 rounded-2xl border-2 border-[#00c853] opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
+                </motion.div>
+              </Link>
             ))}
           </div>
         </div>

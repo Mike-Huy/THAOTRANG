@@ -30,25 +30,39 @@ export function useSettings(group = null) {
   async function updateSetting(key, value, updatedBy) {
     const { error } = await supabase
       .from('ttq6_settings')
-      .update({ value: String(value), updated_by: updatedBy, updated_at: new Date().toISOString() })
-      .eq('key', key);
+      .upsert({ 
+        key, 
+        value: typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value),
+        type: typeof value === 'object' && value !== null ? 'json' : 'string',
+        updated_by: updatedBy, 
+        updated_at: new Date().toISOString() 
+      }, { onConflict: 'key' });
     if (!error) await fetchSettings();
     return { error };
   }
 
   // Cập nhật nhiều settings cùng lúc
   async function updateMany(payload, updatedBy) {
-    const updates = Object.entries(payload).map(([key, value]) =>
-      supabase.from('ttq6_settings').update({
-        value: String(value),
-        updated_by: updatedBy,
-        updated_at: new Date().toISOString(),
-      }).eq('key', key)
+    const entries = Object.entries(payload);
+    const results = await Promise.all(
+      entries.map(([key, value]) => {
+        const isJson = Array.isArray(value) || (typeof value === 'object' && value !== null);
+        return supabase.from('ttq6_settings').upsert({
+          key,
+          value: isJson ? JSON.stringify(value) : String(value ?? ''),
+          type:  isJson ? 'json' : 'string',
+          updated_by: updatedBy ?? null,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'key' });
+      })
     );
-    const results = await Promise.all(updates);
-    const failed  = results.find(r => r.error);
-    if (!failed) await fetchSettings();
-    return { error: failed?.error ?? null };
+    const failed = results.find(r => r.error);
+    if (failed) {
+      console.error('[useSettings] updateMany error:', failed.error);
+      return { error: failed.error };
+    }
+    await fetchSettings();
+    return { error: null };
   }
 
   return { settings, raw, loading, error, refetch: fetchSettings, updateSetting, updateMany };
@@ -58,6 +72,15 @@ function parseValue(value, type) {
   if (value === null || value === undefined) return '';
   if (type === 'number')  return Number(value);
   if (type === 'boolean') return value === 'true';
-  if (type === 'json')    try { return JSON.parse(value); } catch { return value; }
+  if (type === 'json') {
+    try { return JSON.parse(value); } catch { return value; }
+  }
+  // Tự động phục hồi dữ liệu JSON bị lưu nhầm type='string'
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if ((trimmed.startsWith('[') || trimmed.startsWith('{')) && trimmed.length > 1) {
+      try { return JSON.parse(trimmed); } catch { /* không phải JSON hợp lệ, giữ nguyên */ }
+    }
+  }
   return value;
 }
