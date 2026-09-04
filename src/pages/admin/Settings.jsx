@@ -19,17 +19,55 @@ import {
   Plus,
   Trash,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Image as ImageIcon,
+  Upload
 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
+import { supabase } from '../../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Trình chỉnh sửa danh sách JSON động (milestones, why_us)
+// Trình chỉnh sửa danh sách JSON động (milestones, why_us, home_gallery)
 const ListEditor = ({ items = [], onChange, fields = [] }) => {
+  const [uploadingState, setUploadingState] = useState({});
+
   const handleItemChange = (index, key, val) => {
     const updated = [...items];
     updated[index] = { ...updated[index], [key]: val };
     onChange(updated);
+  };
+
+  const handleUpload = async (index, key, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileExt = file.name.split('.').pop();
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    if (!allowedExtensions.includes(fileExt.toLowerCase())) {
+      return alert('Chỉ chấp nhận các định dạng ảnh: JPG, JPEG, PNG, WEBP, GIF');
+    }
+
+    const stateKey = `${index}_${key}`;
+    setUploadingState(prev => ({ ...prev, [stateKey]: true }));
+
+    try {
+      const fileName = `gallery/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('thaotrang')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('thaotrang').getPublicUrl(fileName);
+      if (data?.publicUrl) {
+        handleItemChange(index, key, data.publicUrl);
+      }
+    } catch (err) {
+      console.error('Lỗi tải ảnh:', err);
+      alert('Lỗi tải ảnh: ' + (err.message || err));
+    } finally {
+      setUploadingState(prev => ({ ...prev, [stateKey]: false }));
+    }
   };
 
   const handleAddItem = () => {
@@ -61,36 +99,48 @@ const ListEditor = ({ items = [], onChange, fields = [] }) => {
       {currentItems.map((item, index) => (
         <div 
           key={index} 
-          className="p-4 rounded-xl border border-gray-200 bg-gray-50/50 space-y-3 relative group transition-all hover:bg-gray-50 hover:border-gray-300"
+          className="p-4 rounded-2xl border border-gray-200 bg-white space-y-3 relative group transition-all hover:border-[#00c853]/40 hover:shadow-md"
         >
-          {/* Action buttons */}
-          <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              type="button"
-              onClick={() => handleMoveItem(index, 'up')}
-              disabled={index === 0}
-              className="p-1.5 rounded-lg bg-white hover:bg-gray-100 text-gray-500 disabled:opacity-30 border border-gray-200 transition-all"
-            >
-              <ArrowUp size={12} />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleMoveItem(index, 'down')}
-              disabled={index === currentItems.length - 1}
-              className="p-1.5 rounded-lg bg-white hover:bg-gray-100 text-gray-500 disabled:opacity-30 border border-gray-200 transition-all"
-            >
-              <ArrowDown size={12} />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleRemoveItem(index)}
-              className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 transition-all"
-            >
-              <Trash size={12} />
-            </button>
+          {/* Card Header with Item Number & Actions */}
+          <div className="flex items-center justify-between border-b border-gray-100 pb-2.5 mb-2">
+            <span className="text-xs font-black text-[#008200] uppercase tracking-wider flex items-center gap-2">
+              <span className="w-5 h-5 rounded-md bg-green-100 text-[#008200] flex items-center justify-center text-[10px] font-black">
+                {index + 1}
+              </span>
+              <span>{item.title || item.year || `Mục #${index + 1}`}</span>
+            </span>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => handleMoveItem(index, 'up')}
+                disabled={index === 0}
+                className="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 disabled:opacity-30 border border-gray-200 transition-all"
+                title="Di chuyển lên"
+              >
+                <ArrowUp size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMoveItem(index, 'down')}
+                disabled={index === currentItems.length - 1}
+                className="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 disabled:opacity-30 border border-gray-200 transition-all"
+                title="Di chuyển xuống"
+              >
+                <ArrowDown size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemoveItem(index)}
+                className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 transition-all ml-1"
+                title="Xóa mục này"
+              >
+                <Trash size={12} />
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 pr-24">
+          <div className="grid grid-cols-1 gap-3">
             {fields.map(f => (
               <div key={f.key} className="space-y-1">
                 <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{f.label}</label>
@@ -102,6 +152,34 @@ const ListEditor = ({ items = [], onChange, fields = [] }) => {
                     onChange={(e) => handleItemChange(index, f.key, e.target.value)}
                     placeholder={f.placeholder}
                   />
+                ) : f.type === 'image' ? (
+                  <div className="space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        className="input-field flex-1"
+                        value={item[f.key] || ''}
+                        onChange={(e) => handleItemChange(index, f.key, e.target.value)}
+                        placeholder={f.placeholder || 'Dán URL ảnh hoặc chọn file...'}
+                      />
+                      <label className="flex items-center gap-1.5 px-3 py-2.5 bg-green-50 text-[#008200] hover:bg-[#008200] hover:text-white border border-[#008200]/20 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0">
+                        <Upload size={14} />
+                        <span>{uploadingState[`${index}_${f.key}`] ? 'Đang tải...' : 'Tải ảnh'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={uploadingState[`${index}_${f.key}`]}
+                          onChange={(e) => handleUpload(index, f.key, e)}
+                        />
+                      </label>
+                    </div>
+                    {item[f.key] && (
+                      <div className="relative w-32 h-20 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 mt-1 shadow-sm">
+                        <img src={item[f.key]} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <input
                     type="text"
@@ -140,7 +218,19 @@ const Settings = () => {
   const [activeTab, setActiveTab] = useState('general');
 
   useEffect(() => {
-    if (settings) setFormData(settings);
+    if (settings) {
+      const defaultGallery = [
+        { title: 'Giải đấu chuyên nghiệp', image_url: '' },
+        { title: 'Luyện tập hàng ngày', image_url: '' },
+        { title: 'Cộng đồng badminton', image_url: '' }
+      ];
+      setFormData({
+        ...settings,
+        home_gallery: (Array.isArray(settings.home_gallery) && settings.home_gallery.length > 0)
+          ? settings.home_gallery
+          : defaultGallery
+      });
+    }
   }, [settings]);
 
   const handleChange = (key, value) => {
@@ -149,19 +239,9 @@ const Settings = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    
-    // Đảm bảo tất cả các dữ liệu dạng Mảng hoặc Object sẽ được chuyển về JSON String trước khi ghi xuống
-    const processedFormData = {};
-    Object.entries(formData).forEach(([key, value]) => {
-      if (typeof value === 'object' && value !== null) {
-        processedFormData[key] = JSON.stringify(value);
-      } else {
-        processedFormData[key] = value;
-      }
-    });
-
-    const { error } = await updateMany(processedFormData);
-    if (error) alert('Lỗi: ' + error);
+    // Truyền formData trực tiếp — updateMany tự nhận diện type (object/array → json, string → string)
+    const { error } = await updateMany(formData);
+    if (error) alert('Lỗi: ' + (error.message || JSON.stringify(error)));
     else alert('Đã lưu cấu hình hệ thống thành công!');
     setIsSaving(false);
   };
@@ -339,6 +419,33 @@ const Settings = () => {
                         placeholder="Để trống để sử dụng hình ảnh mặc định..."
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Gallery (Hoạt động tại sân) */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#00c853]/10 text-[#00c853]">
+                      <ImageIcon size={18} />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-[#0d1117] text-xs uppercase tracking-widest">Hoạt động tại sân (Gallery Trang chủ)</h3>
+                      <p className="text-[10px] text-gray-400 font-medium">Thay đổi hình ảnh và tiêu đề cho các thẻ hoạt động ngoài Trang chủ</p>
+                    </div>
+                  </div>
+                  <div className="p-6">
+                    <ListEditor
+                      items={formData['home_gallery'] || [
+                        { title: 'Giải đấu chuyên nghiệp', image_url: '' },
+                        { title: 'Luyện tập hàng ngày', image_url: '' },
+                        { title: 'Cộng đồng badminton', image_url: '' }
+                      ]}
+                      onChange={(val) => handleChange('home_gallery', val)}
+                      fields={[
+                        { key: 'title', label: 'Tiêu đề hoạt động', placeholder: 'VD: Giải đấu chuyên nghiệp' },
+                        { key: 'image_url', label: 'Hình ảnh hoạt động', type: 'image', placeholder: 'Dán URL hoặc chọn ảnh...' }
+                      ]}
+                    />
                   </div>
                 </div>
 

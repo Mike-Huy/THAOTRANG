@@ -2,18 +2,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
-// Helper to create a user without logging out the current admin session
-// Note: This uses the anon key, so it's subject to the same rate limits and restrictions.
+// Helper to create a secondary auth client (no session persistence)
+// so creating a new user won't log out the current admin session.
 const createAdminAuthClient = () => {
-  const supabaseUrl = 'https://jhebreoxwuimlqwvjdok.supabase.co';
-  const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpoZWJyZW94d3VpbWxxd3ZqZG9rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Nzc5MzAsImV4cCI6MjA5MDM1MzkzMH0.VSaOSgcEOZEQbiHP8-CxbyxOJPpJkF1gVIdcidb2rk4';
-  return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false
+  return createClient(
+    import.meta.env.VITE_SUPABASE_URL,
+    import.meta.env.VITE_SUPABASE_ANON_KEY,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
     }
-  });
+  );
 };
 
 export function useUsers() {

@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function Login() {
-  const [identifier, setIdentifier] = useState('ttq6_sadmin@thaotrangq6.com');
-  const [password, setPassword]     = useState('admin123');
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword]     = useState('');
   const [msg, setMsg]           = useState('');
   const { signIn, profile, loading } = useAuth();
 
