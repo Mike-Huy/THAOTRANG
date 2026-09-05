@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  Bell
+  Bell,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -115,7 +116,18 @@ const AdminLayout = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <a 
+              href="/" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-50 text-[#008200] hover:bg-[#008200] hover:text-white border border-[#008200]/20 text-xs font-bold transition-all shadow-sm"
+              title="Mở trang chủ website trong tab mới"
+            >
+              <ExternalLink size={15} />
+              <span>Xem website</span>
+            </a>
+
             <button className="relative p-2 text-gray-400 hover:text-[#00c853] transition-colors">
               <Bell size={20} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>

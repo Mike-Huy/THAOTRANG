@@ -3,8 +3,15 @@ import { Trophy, Users, Heart } from 'lucide-react';
 import { useActivities } from '../hooks/useActivities';
 import action1 from '../assets/badminton_action_1_1777876749514.png';
 
+const typeLabels = {
+  tournament: 'Giải đấu chuyên nghiệp',
+  training: 'Luyện tập hàng ngày',
+  community: 'Cộng đồng badminton',
+  other: 'Khác'
+};
+
 const Activities = () => {
-  const { activities, loading } = useActivities({ status: 'published' });
+  const { activities, loading } = useActivities();
 
   const stats = [
     { label: 'Giải đấu đã tổ chức', value: '45+', icon: <Trophy size={20} /> },
@@ -70,21 +77,22 @@ const Activities = () => {
                 >
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <img 
-                      src={act.image_url || action1} 
+                      src={act.cover_url || act.image_url || action1} 
                       alt={act.title} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-100 transition-all flex items-end p-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
+                      <div className="w-full text-left">
+                        <div className="flex flex-wrap items-center gap-2 mb-1.5">
                           <span className="bg-[#008200] text-white text-[8px] font-bold px-2 py-0.5 rounded-full uppercase block w-fit">
-                            {act.type || 'Sự kiện'}
+                            {typeLabels[act.type] || act.type || 'Sự kiện'}
                           </span>
                           <span className="text-white/60 text-[8px] font-bold uppercase tracking-wider">
                             {formatDate(act.start_date)}
                           </span>
                         </div>
-                        <h3 className="text-white font-bold text-sm leading-snug">{act.title}</h3>
+                        <h3 className="text-white font-bold text-sm leading-snug line-clamp-2">{act.title}</h3>
+                        <p className="text-white/70 text-[10px] line-clamp-2 mt-1 font-medium">{act.description}</p>
                       </div>
                     </div>
                   </div>

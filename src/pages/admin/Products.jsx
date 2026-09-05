@@ -14,7 +14,9 @@ import {
   Sparkles,
   ShoppingBag,
   TrendingUp,
-  Check
+  Check,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { useProducts } from '../../hooks/useProducts';
 import { supabase } from '../../lib/supabase';
@@ -44,6 +46,7 @@ const Products = () => {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isCategorySaving, setIsCategorySaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Filter products
   const filteredProducts = products.filter(product => {
@@ -95,6 +98,51 @@ const Products = () => {
     setIsModalOpen(true);
   };
 
+  // Handle image upload to Supabase storage
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate if it is an image
+    const fileExt = file.name.split('.').pop();
+    const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    if (!allowedExtensions.includes(fileExt.toLowerCase())) {
+      return alert('Chỉ chấp nhận các định dạng ảnh: JPG, JPEG, PNG, WEBP, GIF');
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Create a unique file name
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      // Upload file to the 'thaotrang' bucket
+      const { error: uploadError } = await supabase.storage
+        .from('thaotrang')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('thaotrang')
+        .getPublicUrl(filePath);
+
+      setProductForm(prev => ({ ...prev, cover_url: data.publicUrl }));
+    } catch (error) {
+      console.error('Lỗi tải ảnh:', error);
+      alert('Lỗi tải ảnh: ' + (error.message || error));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   // Handle save product
   const handleSaveProduct = async (e) => {
     e.preventDefault();
@@ -125,7 +173,6 @@ const Products = () => {
       alert('Lỗi: ' + result.error);
     } else {
       setIsModalOpen(false);
-      alert(editingProduct ? 'Cập nhật sản phẩm thành công!' : 'Thêm sản phẩm mới thành công!');
     }
   };
 
@@ -478,14 +525,59 @@ const Products = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Ảnh sản phẩm (URL)</label>
-                  <input 
-                    type="text"
-                    placeholder="Nhập liên kết hình ảnh..."
-                    className="input-field"
-                    value={productForm.cover_url}
-                    onChange={(e) => setProductForm({...productForm, cover_url: e.target.value})}
-                  />
+                  <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Ảnh sản phẩm</label>
+                  <div className="relative border-2 border-dashed border-gray-200 rounded-2xl p-4 hover:border-[#00c853] transition-all bg-gray-50/50 flex flex-col items-center justify-center min-h-[120px]">
+                    {isUploading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="animate-spin text-[#00c853]" size={24} />
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Đang tải ảnh lên...</span>
+                      </div>
+                    ) : productForm.cover_url ? (
+                      <div className="relative w-full flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <img src={productForm.cover_url} alt="Preview" className="w-16 h-16 rounded-xl object-cover border border-gray-200 shadow-sm" />
+                          <div className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
+                            <span className="text-[10px] font-bold text-gray-700 block">Đã tải ảnh lên</span>
+                            <span className="text-[9px] text-gray-400 font-medium block overflow-hidden text-ellipsis">{productForm.cover_url.split('/').pop()}</span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <label className="cursor-pointer px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all">
+                            Thay đổi
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              className="hidden" 
+                              onChange={handleImageUpload}
+                            />
+                          </label>
+                          <button 
+                            type="button"
+                            onClick={() => setProductForm(prev => ({ ...prev, cover_url: '' }))}
+                            className="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer w-full h-full flex flex-col items-center justify-center py-2 gap-2 text-center">
+                        <div className="w-10 h-10 bg-gray-100 hover:bg-[#00c853]/10 rounded-full flex items-center justify-center text-gray-400 transition-all">
+                          <Upload size={18} />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black text-gray-700 uppercase tracking-tight block">Tải ảnh lên</span>
+                          <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest block mt-0.5">Click để chọn ảnh từ máy</span>
+                        </div>
+                        <input 
+                          type="file" 
+                          accept="image/*"
+                          className="hidden" 
+                          onChange={handleImageUpload}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
 

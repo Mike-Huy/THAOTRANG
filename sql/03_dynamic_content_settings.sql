@@ -17,6 +17,9 @@ INSERT INTO public.ttq6_settings (key, value, type, setting_group, label) VALUES
   -- TRANG CHỦ: PARTNERS (JSON array)
   ('home_partners',          '["Yonex", "Victor", "Li-Ning", "Forza", "Mizuno"]',    'json',    'home',  'Đối tác chiến lược'),
 
+  -- TRANG CHỦ: GALLERY (JSON array)
+  ('home_gallery',           '[{"title": "Giải đấu chuyên nghiệp", "image_url": ""}, {"title": "Luyện tập hàng ngày", "image_url": ""}, {"title": "Cộng đồng badminton", "image_url": ""}]', 'json', 'home', 'Hoạt động tại sân (Gallery)'),
+
   -- TRANG CHỦ: WHY CHOOSE US (JSON array)
   ('home_why_us',            '[{"title": "Sân Chuẩn BWF", "desc": "Mặt sân thảm Yonex cao cấp, đèn chiếu sáng chuyên nghiệp, đạt tiêu chuẩn thi đấu quốc tế."}, {"title": "HLV Chuyên Nghiệp", "desc": "Đội ngũ huấn luyện viên cấp quốc gia, có kinh nghiệm thi đấu chuyên nghiệp nhiều năm."}, {"title": "Đặt Sân Online 24/7", "desc": "Hệ thống đặt sân trực tuyến thông minh, quản lý lịch chơi dễ dàng, nhanh chóng và tiện lợi."}]', 'json', 'home', 'Lý do chọn (Trang chủ)'),
 

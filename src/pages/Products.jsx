@@ -159,7 +159,7 @@ const Products = () => {
                         />
                       </div>
                       <div className="px-0.5 sm:px-1">
-                        <h3 className="font-bold text-[11px] sm:text-sm mb-1.5 sm:mb-2 group-hover:text-[#008200] transition-colors leading-tight line-clamp-2">
+                        <h3 className="font-bold text-xs sm:text-base mb-1.5 sm:mb-2 group-hover:text-[#008200] transition-colors leading-tight line-clamp-2">
                           {p.name}
                         </h3>
                         <div className="flex text-yellow-400 mb-2 sm:mb-4 gap-0.5">
@@ -168,7 +168,7 @@ const Products = () => {
                           ))}
                         </div>
                         <div className="flex justify-between items-center">
-                          <p className="font-extrabold text-xs sm:text-base" style={{
+                          <p className="font-normal text-base sm:text-lg" style={{
                             background: 'linear-gradient(135deg, #00c853, #007a00)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',

@@ -245,7 +245,7 @@ const Home = () => {
                   <img src={p.image_url || products} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                 </div>
                 <div className="p-3 sm:p-4">
-                  <h3 className="font-bold text-[11px] sm:text-xs text-gray-800 mb-2 group-hover:text-[#008200] transition-colors line-clamp-2 leading-tight">{p.name}</h3>
+                  <h3 className="font-bold text-xs sm:text-sm text-gray-800 mb-2 group-hover:text-[#008200] transition-colors line-clamp-2 leading-tight">{p.name}</h3>
                   <div className="flex gap-0.5 text-yellow-400 mb-2 sm:mb-3">
                     {[1, 2, 3, 4, 5].map(s => (
                       <Star 
@@ -257,7 +257,7 @@ const Home = () => {
                     ))}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="font-black text-xs sm:text-sm" style={{
+                    <span className="font-normal text-base sm:text-lg" style={{
                       background: 'linear-gradient(135deg, #00c853, #007a00)',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
