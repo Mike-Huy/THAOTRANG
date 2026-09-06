@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useBookings({ date, status, courtId } = {}) {
@@ -6,10 +6,9 @@ export function useBookings({ date, status, courtId } = {}) {
   const [courts, setCourts]     = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
-  const hasFetchedRef           = useRef(false);
 
   const fetchBookings = useCallback(async () => {
-    if (!hasFetchedRef.current) setLoading(true);
+    setLoading(true);
     let query = supabase
       .from('ttq6_bookings')
       .select('*, court:ttq6_courts(id, name, price_per_hour)')
@@ -21,7 +20,6 @@ export function useBookings({ date, status, courtId } = {}) {
     if (courtId) query = query.eq('court_id', courtId);
 
     const { data, error } = await query;
-    hasFetchedRef.current = true;
     if (error) setError(error.message);
     else setBookings(data ?? []);
     setLoading(false);

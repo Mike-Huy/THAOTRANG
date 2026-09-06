@@ -1,30 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
-const CACHE_KEY = 'ttq6_settings_cache';
-
-function readCache() {
-  try {
-    const raw = localStorage.getItem(CACHE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeCache(map) {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify(map)); } catch { /* quota exceeded, bỏ qua */ }
-}
-
 export function useSettings(group = null) {
-  // Khi không lọc group: khởi tạo ngay từ cache → không flash ảnh khi load
-  const [settings, setSettings] = useState(() => (!group ? (readCache() ?? {}) : {}));
+  const [settings, setSettings] = useState({});
   const [raw, setRaw]           = useState([]);
-  // Chỉ loading=true khi chưa có cache (lần đầu vào trang)
-  const [loading, setLoading]   = useState(() => !group && !readCache());
+  const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
 
   const fetchSettings = useCallback(async () => {
+    setLoading(true);
     let query = supabase.from('ttq6_settings').select('*').order('setting_group').order('key');
     if (group) query = query.eq('setting_group', group);
 
@@ -36,10 +20,6 @@ export function useSettings(group = null) {
     (data ?? []).forEach(row => {
       map[row.key] = parseValue(row.value, row.type);
     });
-
-    // Lưu cache để lần sau render ngay, không flash
-    if (!group) writeCache(map);
-
     setRaw(data ?? []);
     setSettings(map);
     setLoading(false);

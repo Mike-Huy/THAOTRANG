@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { 
   Globe, 
   Phone, 
@@ -22,12 +21,7 @@ import {
   ArrowUp,
   ArrowDown,
   Image as ImageIcon,
-  Upload,
-  FolderOpen,
-  Check,
-  X,
-  RefreshCw,
-  ExternalLink
+  Upload
 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 import { supabase } from '../../lib/supabase';
@@ -217,284 +211,11 @@ const ListEditor = ({ items = [], onChange, fields = [] }) => {
   );
 };
 
-// Bộ quản lý & Upload ảnh chuyên nghiệp (Upload máy tính + Chọn từ Bucket Supabase + Mẫu ảnh sẵn)
-const BucketImageUploader = ({ label, value, onChange, folder = 'about' }) => {
-  const [uploading, setUploading] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [bucketFiles, setBucketFiles] = useState([]);
-  const [loadingFiles, setLoadingFiles] = useState(false);
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const fileExt = file.name.split('.').pop();
-    const allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-    if (!allowed.includes(fileExt.toLowerCase())) {
-      return alert('Chỉ chấp nhận các định dạng file ảnh: JPG, JPEG, PNG, WEBP, GIF');
-    }
-
-    setUploading(true);
-    try {
-      const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from('thaotrang')
-        .upload(fileName, file, { cacheControl: '3600', upsert: false });
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from('thaotrang').getPublicUrl(fileName);
-      if (data?.publicUrl) {
-        onChange(data.publicUrl);
-      }
-    } catch (err) {
-      console.error('Lỗi tải ảnh:', err);
-      alert('Lỗi tải ảnh: ' + (err.message || err));
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const loadBucketFiles = async () => {
-    setLoadingFiles(true);
-    setShowModal(true);
-    try {
-      const foldersToList = ['', 'about', 'products', 'gallery', 'activities'];
-      let allFiles = [];
-
-      for (const f of foldersToList) {
-        const { data, error } = await supabase.storage.from('thaotrang').list(f, { limit: 100, sortBy: { column: 'created_at', order: 'desc' } });
-        if (!error && data) {
-          const files = data
-            .filter(item => item.name && !item.name.startsWith('.'))
-            .map(item => {
-              const fullPath = f ? `${f}/${item.name}` : item.name;
-              const { data: urlData } = supabase.storage.from('thaotrang').getPublicUrl(fullPath);
-              return {
-                name: item.name,
-                fullPath,
-                url: urlData.publicUrl,
-                created_at: item.created_at
-              };
-            });
-          allFiles = [...allFiles, ...files];
-        }
-      }
-      setBucketFiles(allFiles);
-    } catch (err) {
-      console.error('Lỗi lấy danh sách file:', err);
-    } finally {
-      setLoadingFiles(false);
-    }
-  };
-
-  const badmintonPresets = [
-    { title: 'Ảnh Cầu Lông Thảo Trang', url: '/images/badminton_about.png' },
-    { title: 'Sân Cầu Lông & Quả Cầu HD 1', url: 'https://images.unsplash.com/photo-1626224583764-f87db24ac4ea?auto=format&fit=crop&q=80&w=1200' },
-    { title: 'Quả Cầu Lông HD 2', url: 'https://images.unsplash.com/photo-1521537634581-0dced2efa2a3?auto=format&fit=crop&q=80&w=1200' },
-  ];
-
-  const currentUrl = value || '/images/badminton_about.png';
-
-  return (
-    <div className="space-y-3 bg-gray-50/80 p-4 rounded-2xl border border-gray-200/80">
-      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">
-        {label}
-      </label>
-
-      {/* Image Preview & Current URL */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <div className="relative w-full sm:w-44 h-32 rounded-xl overflow-hidden border border-gray-300 bg-gray-900 group shadow-md shrink-0">
-          <img 
-            src={currentUrl} 
-            alt="Preview" 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => { e.target.src = '/images/badminton_about.png'; }}
-          />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-            <a 
-              href={currentUrl} 
-              target="_blank" 
-              rel="noreferrer" 
-              className="p-1.5 rounded-lg bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm transition-all"
-              title="Xem ảnh gốc"
-            >
-              <ExternalLink size={14} />
-            </a>
-          </div>
-        </div>
-
-        <div className="flex-1 w-full space-y-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Upload from Computer */}
-            <label className="flex items-center gap-2 px-3.5 py-2.5 bg-[#008200] hover:bg-[#006600] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm hover:shadow">
-              <Upload size={15} />
-              <span>{uploading ? 'Đang tải lên...' : 'Tải ảnh từ máy tính'}</span>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                disabled={uploading}
-                onChange={handleFileUpload} 
-              />
-            </label>
-
-            {/* Choose from Thaotrang Supabase Bucket */}
-            <button
-              type="button"
-              onClick={loadBucketFiles}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-white hover:bg-green-50 text-[#008200] border border-[#008200]/30 rounded-xl text-xs font-bold transition-all shadow-sm"
-            >
-              <FolderOpen size={15} />
-              <span>Chọn từ Bucket 'thaotrang'</span>
-            </button>
-          </div>
-
-          {/* Preset Badminton Images Quick Select */}
-          <div className="space-y-1">
-            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Chọn nhanh ảnh cầu lông mẫu:</span>
-            <div className="flex flex-wrap gap-1.5">
-              {badmintonPresets.map((preset, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => onChange(preset.url)}
-                  className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg border transition-all ${
-                    currentUrl === preset.url 
-                      ? 'bg-green-100 border-[#008200] text-[#008200] font-bold' 
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-green-300'
-                  }`}
-                >
-                  {preset.title}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Text Input for Custom URL */}
-          <div className="pt-1">
-            <input 
-              type="text" 
-              className="input-field text-xs bg-white" 
-              value={value || ''}
-              onChange={(e) => onChange(e.target.value)}
-              placeholder="Hoặc dán trực tiếp URL ảnh tại đây..."
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Bucket Files Selection Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
-              <div className="flex items-center gap-2">
-                <FolderOpen className="text-[#008200]" size={20} />
-                <div>
-                  <h3 className="font-bold text-[#0d1117] text-sm uppercase tracking-wide">Thư viện ảnh Bucket 'thaotrang'</h3>
-                  <p className="text-[10px] text-gray-400">Nhấp vào một hình ảnh để chọn cho trang Giới thiệu</p>
-                </div>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="p-2 rounded-xl text-gray-400 hover:text-gray-700 hover:bg-gray-200/60 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="p-4 overflow-y-auto flex-1 custom-scrollbar min-h-[300px]">
-              {loadingFiles ? (
-                <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
-                  <RefreshCw className="animate-spin text-[#008200]" size={28} />
-                  <span className="text-xs font-bold">Đang tải danh sách ảnh từ bucket 'thaotrang'...</span>
-                </div>
-              ) : bucketFiles.length === 0 ? (
-                <div className="text-center py-12 text-gray-400 text-xs font-medium">
-                  Chưa tìm thấy ảnh nào trong bucket 'thaotrang'. Bạn có thể bấm "Tải ảnh từ máy tính" để upload ảnh mới.
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {bucketFiles.map((file, i) => {
-                    const isSelected = currentUrl === file.url;
-                    return (
-                      <div 
-                        key={i}
-                        onClick={() => {
-                          onChange(file.url);
-                          setShowModal(false);
-                        }}
-                        className={`group relative rounded-xl overflow-hidden border-2 cursor-pointer transition-all aspect-video bg-gray-100 hover:shadow-lg ${
-                          isSelected ? 'border-[#008200] ring-2 ring-[#008200]/30' : 'border-gray-200 hover:border-green-400'
-                        }`}
-                      >
-                        <img 
-                          src={file.url} 
-                          alt={file.name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end">
-                          <span className="text-white text-[9px] font-bold truncate">{file.name}</span>
-                          <span className="text-gray-300 text-[8px] truncate">{file.fullPath}</span>
-                        </div>
-                        {isSelected && (
-                          <div className="absolute top-1.5 right-1.5 bg-[#008200] text-white p-1 rounded-full shadow">
-                            <Check size={12} />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
-              <span className="text-[11px] text-gray-500 font-medium">
-                Tìm thấy {bucketFiles.length} hình ảnh trong bucket 'thaotrang'
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-xs font-bold transition-all"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-const Settings = ({ initialTab }) => {
+const Settings = () => {
   const { settings, loading, error, updateMany } = useSettings();
   const [formData, setFormData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const tabFromUrl = searchParams.get('tab');
-  // Xác định tab đang active: ưu tiên initialTab (từ route /admin/about) > URL ?tab= > mặc định 'general'
-  const [activeTab, setActiveTab] = useState(initialTab || tabFromUrl || 'general');
-
-  // Đồng bộ tab khi route thay đổi (ví dụ: điều hướng từ /admin/about sang /admin/settings)
-  useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab);
-    } else if (tabFromUrl) {
-      setActiveTab(tabFromUrl);
-    }
-  }, [initialTab, tabFromUrl]);
-
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-    // Chỉ cập nhật searchParams nếu không có initialTab (tức là đang ở /admin/settings, không phải /admin/about)
-    if (!initialTab) {
-      setSearchParams({ tab: tabId }, { replace: true });
-    }
-  };
+  const [activeTab, setActiveTab] = useState('general');
 
   useEffect(() => {
     if (settings) {
@@ -530,14 +251,7 @@ const Settings = ({ initialTab }) => {
     setIsSaving(false);
   };
 
-  // Chỉ block render khi chưa có data nào (không có cache). Nếu đã có cache thì render form ngay.
-  if (loading && !settings?.site_name) return (
-    <div className="flex flex-col items-center justify-center py-24 gap-4">
-      <div className="w-10 h-10 border-4 border-[#00c853]/20 border-t-[#00c853] rounded-full animate-spin" />
-      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Đang tải cấu hình...</span>
-    </div>
-  );
-
+  if (loading) return <div className="p-10 text-gray-500 font-bold uppercase text-[10px] tracking-widest animate-pulse">Đang tải cấu hình cài đặt...</div>;
   if (error) return <div className="p-4 text-red-500 bg-red-50 rounded-xl border border-red-100 font-bold uppercase text-[10px] tracking-widest">{error}</div>;
 
   const tabs = [
@@ -605,7 +319,7 @@ const Settings = ({ initialTab }) => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => handleTabChange(tab.id)}
+            onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
               activeTab === tab.id 
                 ? 'bg-white text-[#00c853] shadow-sm ring-1 ring-black/5' 
@@ -618,13 +332,13 @@ const Settings = ({ initialTab }) => {
         ))}
       </div>
 
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.1 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
         >
           {/* TAB 1: GENERAL SETTINGS */}
           {activeTab === 'general' && (
@@ -876,12 +590,16 @@ const Settings = ({ initialTab }) => {
                         placeholder="Mô tả phương châm phục vụ..."
                       />
                     </div>
-                    <BucketImageUploader
-                      label="Hình ảnh Giới thiệu (Hiển thị góc phải trang Giới thiệu)"
-                      value={formData['about_image_url']}
-                      onChange={(url) => handleChange('about_image_url', url)}
-                      folder="about"
-                    />
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">URL Ảnh Giới thiệu</label>
+                      <input 
+                        type="text" 
+                        className="input-field"
+                        value={formData['about_image_url'] || ''}
+                        onChange={(e) => handleChange('about_image_url', e.target.value)}
+                        placeholder="Hình ảnh minh họa trang giới thiệu..."
+                      />
+                    </div>
                   </div>
                 </div>
 

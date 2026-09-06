@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 
@@ -7,7 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 const createAdminAuthClient = () => {
   return createClient(
     import.meta.env.VITE_SUPABASE_URL,
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    import.meta.env.VITE_SUPABASE_ANON_KEY,
     {
       auth: {
         persistSession: false,
@@ -22,16 +22,14 @@ export function useUsers() {
   const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
-  const hasFetchedRef         = useRef(false);
 
   const fetchUsers = useCallback(async () => {
-    if (!hasFetchedRef.current) setLoading(true);
+    setLoading(true);
     const { data, error } = await supabase
       .from('ttq6_profiles')
       .select('*')
       .neq('role', 'super_admin')
       .order('created_at', { ascending: false });
-    hasFetchedRef.current = true;
     if (error) setError(error.message);
     else setUsers(data ?? []);
     setLoading(false);

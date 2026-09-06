@@ -1,24 +1,23 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  ShoppingBag,
-  Calendar,
-  Zap,
-  Mail,
-  Settings,
+import { 
+  LayoutDashboard, 
+  Users, 
+  FileText, 
+  ShoppingBag, 
+  Calendar, 
+  Zap, 
+  Mail, 
+  Settings, 
   LogOut,
   Menu,
   X,
   ChevronRight,
   Bell,
-  ExternalLink,
-  Globe
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -32,7 +31,6 @@ const AdminLayout = () => {
     { path: '/admin/products', icon: ShoppingBag, label: 'Sản phẩm' },
     { path: '/admin/bookings', icon: Calendar, label: 'Đặt sân' },
     { path: '/admin/activities', icon: Zap, label: 'Hoạt động' },
-    { path: '/admin/about', icon: Globe, label: 'Trang Giới thiệu' },
     { path: '/admin/contacts', icon: Mail, label: 'Liên hệ' },
     { path: '/admin/settings', icon: Settings, label: 'Cài đặt' },
   ];
@@ -152,7 +150,17 @@ const AdminLayout = () => {
         </header>
 
         <main className="p-8 flex-1">
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

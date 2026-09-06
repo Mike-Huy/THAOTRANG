@@ -1,14 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useActivities({ status, type, limit } = {}) {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
-  const hasFetchedRef               = useRef(false);
 
   const fetchActivities = useCallback(async () => {
-    if (!hasFetchedRef.current) setLoading(true);
+    setLoading(true);
     let query = supabase
       .from('ttq6_activities')
       .select('*, author:ttq6_profiles(username, full_name)')
@@ -19,7 +18,6 @@ export function useActivities({ status, type, limit } = {}) {
     if (limit)  query = query.limit(limit);
 
     const { data, error } = await query;
-    hasFetchedRef.current = true;
     if (error) setError(error.message);
     else setActivities(data ?? []);
     setLoading(false);
