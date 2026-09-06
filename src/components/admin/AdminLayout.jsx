@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
-  ShoppingBag, 
-  Calendar, 
-  Zap, 
-  Mail, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  ShoppingBag,
+  Calendar,
+  Zap,
+  Mail,
+  Settings,
   LogOut,
   Menu,
   X,
@@ -18,7 +18,7 @@ import {
   Globe
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -152,17 +152,7 @@ const AdminLayout = () => {
         </header>
 
         <main className="p-8 flex-1">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+          <Outlet />
         </main>
       </div>
     </div>
