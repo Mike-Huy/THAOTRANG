@@ -476,13 +476,10 @@ const Settings = ({ initialTab }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
+  // Xác định tab đang active: ưu tiên initialTab (từ route /admin/about) > URL ?tab= > mặc định 'general'
   const [activeTab, setActiveTab] = useState(initialTab || tabFromUrl || 'general');
 
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-    setSearchParams({ tab: tabId }, { replace: true });
-  };
-
+  // Đồng bộ tab khi route thay đổi (ví dụ: điều hướng từ /admin/about sang /admin/settings)
   useEffect(() => {
     if (initialTab) {
       setActiveTab(initialTab);
@@ -490,6 +487,14 @@ const Settings = ({ initialTab }) => {
       setActiveTab(tabFromUrl);
     }
   }, [initialTab, tabFromUrl]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    // Chỉ cập nhật searchParams nếu không có initialTab (tức là đang ở /admin/settings, không phải /admin/about)
+    if (!initialTab) {
+      setSearchParams({ tab: tabId }, { replace: true });
+    }
+  };
 
   useEffect(() => {
     if (settings) {
@@ -524,6 +529,14 @@ const Settings = ({ initialTab }) => {
     else alert('Đã lưu cấu hình hệ thống thành công!');
     setIsSaving(false);
   };
+
+  // Chỉ block render khi chưa có data nào (không có cache). Nếu đã có cache thì render form ngay.
+  if (loading && !settings?.site_name) return (
+    <div className="flex flex-col items-center justify-center py-24 gap-4">
+      <div className="w-10 h-10 border-4 border-[#00c853]/20 border-t-[#00c853] rounded-full animate-spin" />
+      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Đang tải cấu hình...</span>
+    </div>
+  );
 
   if (error) return <div className="p-4 text-red-500 bg-red-50 rounded-xl border border-red-100 font-bold uppercase text-[10px] tracking-widest">{error}</div>;
 
@@ -605,13 +618,13 @@ const Settings = ({ initialTab }) => {
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="popLayout">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.1 }}
         >
           {/* TAB 1: GENERAL SETTINGS */}
           {activeTab === 'general' && (

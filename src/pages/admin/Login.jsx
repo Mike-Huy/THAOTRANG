@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 
 export default function Login() {
@@ -12,8 +13,7 @@ export default function Login() {
   if (!loading && profile?.role) {
     const isStaff = ['super_admin', 'admin', 'staff'].includes(profile.role);
     if (isStaff) {
-      window.location.replace('/admin');
-      return null;
+      return <Navigate to="/admin" replace />;
     }
   }
 
