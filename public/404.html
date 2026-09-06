@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>Thảo Trang Badminton</title>
+  <script>
+    // GitHub Pages SPA Redirect — giải quyết lỗi trắng trang khi truy cập trực tiếp URL
+    // Khi GitHub Pages không tìm thấy file, nó phục vụ 404.html này.
+    // Script này encode URL hiện tại và redirect về index.html để React Router xử lý.
+    //
+    // pathSegmentsToKeep = 0 nếu dùng custom domain hoặc username.github.io (root)
+    // pathSegmentsToKeep = 1 nếu deploy lên username.github.io/repo-name/
+    var pathSegmentsToKeep = 0;
+
+    var l = window.location;
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+      l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+      (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+      l.hash
+    );
+  </script>
+</head>
+<body></body>
+</html>
