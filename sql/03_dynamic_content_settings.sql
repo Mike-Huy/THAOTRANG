@@ -27,7 +27,7 @@ INSERT INTO public.ttq6_settings (key, value, type, setting_group, label) VALUES
   ('about_title',            'THAOTRANG GROUP - ĐA NGÀNH NGHỀ, TRỌN NIỀM TIN',        'string',  'about', 'Tiêu đề Giới thiệu'),
   ('about_description_p1',   'Được hình thành từ niềm đam mê mãnh liệt với môn cầu lông, ThaoTrang Group đã không ngừng phát triển để trở thành một tập đoàn đa ngành vững mạnh. Chúng tôi không chỉ cung cấp không gian tập luyện chuyên nghiệp mà còn mở rộng sang lĩnh vực cung ứng trang thiết bị, tổ chức sự kiện và tư vấn giải pháp thể thao toàn diện.', 'string', 'about', 'Đoạn giới thiệu 1'),
   ('about_description_p2',   'Với phương châm "Khách hàng là trọng tâm", mỗi dịch vụ của chúng tôi đều hướng tới sự hoàn mỹ, sang trọng và đẳng cấp quốc tế.', 'string', 'about', 'Đoạn giới thiệu 2'),
-  ('about_image_url',        'https://images.unsplash.com/photo-1599586120429-48281b6f0ece?auto=format&fit=crop&q=80&w=1000', 'string', 'about', 'URL ảnh giới thiệu'),
+  ('about_image_url',        '/images/badminton_about.png', 'string', 'about', 'URL ảnh giới thiệu'),
 
   -- TRANG GIỚI THIỆU: SỨ MỆNH - TẦM NHÌN - GIÁ TRỊ CỐT LÕI
   ('about_mission_title',    'Sứ mệnh',                                             'string',  'about', 'Tiêu đề Sứ mệnh'),

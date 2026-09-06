@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function useContacts({ status } = {}) {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
+  const hasFetchedRef           = useRef(false);
 
   const fetchContacts = useCallback(async () => {
-    setLoading(true);
+    if (!hasFetchedRef.current) setLoading(true);
     let query = supabase
       .from('ttq6_contacts')
       .select('*')
@@ -16,6 +17,7 @@ export function useContacts({ status } = {}) {
     if (status) query = query.eq('status', status);
 
     const { data, error } = await query;
+    hasFetchedRef.current = true;
     if (error) setError(error.message);
     else setContacts(data ?? []);
     setLoading(false);

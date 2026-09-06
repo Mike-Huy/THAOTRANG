@@ -101,7 +101,7 @@ const About = () => {
             <div className="flex-1 w-full relative mt-4 md:mt-0">
               <div className="absolute -inset-3 sm:-inset-4 border-2 border-[#008200] rounded-[1.5rem] sm:rounded-[2rem] z-0 opacity-20" />
               <img
-                src={settings.about_image_url || 'https://images.unsplash.com/photo-1599586120429-48281b6f0ece?auto=format&fit=crop&q=80&w=1000'}
+                src={settings.about_image_url || '/images/badminton_about.png'}
                 alt="About"
                 className="relative z-10 rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl w-full h-[240px] sm:h-[300px] md:h-[350px] object-cover"
               />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -14,7 +14,8 @@ import {
   X,
   ChevronRight,
   Bell,
-  ExternalLink
+  ExternalLink,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth.jsx';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,6 +32,7 @@ const AdminLayout = () => {
     { path: '/admin/products', icon: ShoppingBag, label: 'Sản phẩm' },
     { path: '/admin/bookings', icon: Calendar, label: 'Đặt sân' },
     { path: '/admin/activities', icon: Zap, label: 'Hoạt động' },
+    { path: '/admin/about', icon: Globe, label: 'Trang Giới thiệu' },
     { path: '/admin/contacts', icon: Mail, label: 'Liên hệ' },
     { path: '/admin/settings', icon: Settings, label: 'Cài đặt' },
   ];
@@ -150,13 +152,12 @@ const AdminLayout = () => {
         </header>
 
         <main className="p-8 flex-1">
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.12 }}
             >
               <Outlet />
             </motion.div>

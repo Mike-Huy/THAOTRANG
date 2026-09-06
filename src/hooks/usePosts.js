@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 
 export function usePosts({ status, category, limit } = {}) {
   const [posts, setPosts]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+  const hasFetchedRef         = useRef(false);
 
   const fetchPosts = useCallback(async () => {
-    setLoading(true);
+    if (!hasFetchedRef.current) setLoading(true);
     let query = supabase
       .from('ttq6_posts')
       .select('*, author:ttq6_profiles(username, full_name)')
@@ -18,6 +19,7 @@ export function usePosts({ status, category, limit } = {}) {
     if (limit)    query = query.limit(limit);
 
     const { data, error } = await query;
+    hasFetchedRef.current = true;
     if (error) setError(error.message);
     else setPosts(data ?? []);
     setLoading(false);

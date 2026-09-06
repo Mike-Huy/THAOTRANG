@@ -53,6 +53,7 @@ function AppContent() {
               <Route path="products" element={<AdminProducts />} />
               <Route path="bookings" element={<AdminBookings />} />
               <Route path="activities" element={<AdminActivities />} />
+              <Route path="about" element={<Settings initialTab="about" />} />
               <Route path="contacts" element={<Contacts />} />
               <Route path="settings" element={<Settings />} />
             </Route>
