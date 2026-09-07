@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, User, Mail, Lock, ArrowRight, AlertCircle, LogOut, LogIn } from 'lucide-react';
+import { Menu, X, User, Mail, Lock, ArrowRight, AlertCircle, LogOut, LogIn, ShoppingCart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../hooks/useAuth';
+import { useCart } from '../context/CartContext';
 
 const Navbar = () => {
   const { user, profile, loading: authLoading, signIn, signUpAndSignIn, signOut, isStaff } = useAuth();
+  const { totalQuantity, toggleCart } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
@@ -177,6 +179,26 @@ const Navbar = () => {
                 </button>
               </div>
             )}
+
+            {/* Cart Icon */}
+            <button
+              onClick={toggleCart}
+              className="relative p-2 rounded-xl text-gray-700 hover:text-[#008200] hover:bg-green-50 transition-all"
+              title="Giỏ hàng"
+            >
+              <ShoppingCart size={20} />
+              {totalQuantity > 0 && (
+                <motion.span
+                  key={totalQuantity}
+                  initial={{ scale: 0.5 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[9px] font-black flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #00c853, #008200)' }}
+                >
+                  {totalQuantity > 9 ? '9+' : totalQuantity}
+                </motion.span>
+              )}
+            </button>
 
             <button
               onClick={() => setIsOpen(!isOpen)}

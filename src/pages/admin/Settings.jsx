@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Globe, 
   Phone, 
@@ -21,13 +21,304 @@ import {
   ArrowUp,
   ArrowDown,
   Image as ImageIcon,
-  Upload
+  Upload,
+  X,
+  FolderOpen,
+  RefreshCw,
+  Check
 } from 'lucide-react';
 import { useSettings } from '../../hooks/useSettings';
 import { supabase } from '../../lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Trình chỉnh sửa danh sách JSON động (milestones, why_us, home_gallery)
+// ─── Component duyệt & chọn ảnh từ Supabase bucket ───────────────────────────
+const BucketImagePicker = ({ bucket = 'thaotrang', onSelect, onClose }) => {
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchImages = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Lấy tất cả file trong bucket (đệ quy tối đa 2 cấp folder)
+      const fetchFolder = async (prefix = '') => {
+        const { data, error } = await supabase.storage.from(bucket).list(prefix, {
+          limit: 200,
+          offset: 0,
+          sortBy: { column: 'created_at', order: 'desc' },
+        });
+        if (error) throw error;
+        return (data || []).map(item => ({
+          ...item,
+          fullPath: prefix ? `${prefix}/${item.name}` : item.name,
+        }));
+      };
+
+      const rootItems = await fetchFolder('');
+      const allImages = [];
+
+      for (const item of rootItems) {
+        if (!item.id && item.name) {
+          // Đây là folder — lấy nội dung bên trong
+          const subItems = await fetchFolder(item.name);
+          subItems.forEach(sub => {
+            const ext = sub.name.split('.').pop()?.toLowerCase();
+            if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext)) {
+              const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(sub.fullPath);
+              allImages.push({ name: sub.name, path: sub.fullPath, url: urlData?.publicUrl || '' });
+            }
+          });
+        } else {
+          const ext = item.name.split('.').pop()?.toLowerCase();
+          if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext)) {
+            const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(item.fullPath);
+            allImages.push({ name: item.name, path: item.fullPath, url: urlData?.publicUrl || '' });
+          }
+        }
+      }
+
+      setImages(allImages);
+    } catch (err) {
+      console.error('Lỗi tải danh sách ảnh:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [bucket]);
+
+  useEffect(() => { fetchImages(); }, [fetchImages]);
+
+  const filtered = images.filter(img =>
+    img.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    img.path.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        transition={{ duration: 0.2 }}
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/70 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-[#00c853]/10 rounded-xl text-[#00c853]">
+              <FolderOpen size={18} />
+            </div>
+            <div>
+              <h3 className="font-black text-[#0d1117] text-sm uppercase tracking-wide">Chọn ảnh từ bucket</h3>
+              <p className="text-[10px] text-gray-400 font-medium">Bucket: <span className="text-[#008200] font-black">{bucket}</span> — {images.length} ảnh</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={fetchImages} className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 transition-all" title="Làm mới">
+              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button onClick={onClose} className="p-2 hover:bg-red-50 rounded-xl text-gray-400 hover:text-red-500 transition-all">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Search */}
+        <div className="px-5 py-3 border-b border-gray-100 shrink-0">
+          <input
+            type="text"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#00c853]/30 focus:border-[#00c853]/50 bg-gray-50"
+            placeholder="Tìm kiếm theo tên file hoặc thư mục..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Image Grid */}
+        <div className="flex-1 overflow-y-auto p-5">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+              <RefreshCw size={28} className="animate-spin mb-3 text-[#00c853]" />
+              <p className="text-xs font-bold uppercase tracking-widest">Đang tải danh sách ảnh...</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+              <ImageIcon size={32} className="mb-3 opacity-40" />
+              <p className="text-xs font-bold uppercase tracking-widest">{searchQuery ? 'Không tìm thấy ảnh phù hợp' : 'Bucket trống hoặc không có ảnh'}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+              {filtered.map((img) => (
+                <button
+                  key={img.path}
+                  type="button"
+                  onClick={() => setSelected(img)}
+                  className={`relative group rounded-xl overflow-hidden border-2 aspect-square transition-all duration-200 ${
+                    selected?.path === img.path
+                      ? 'border-[#00c853] shadow-lg shadow-[#00c853]/20 scale-[1.02]'
+                      : 'border-gray-200 hover:border-[#00c853]/50 hover:shadow-md'
+                  }`}
+                  title={img.path}
+                >
+                  <img
+                    src={img.url}
+                    alt={img.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                  {selected?.path === img.path && (
+                    <div className="absolute inset-0 bg-[#00c853]/20 flex items-center justify-center">
+                      <div className="bg-[#00c853] rounded-full p-1">
+                        <Check size={14} className="text-white" />
+                      </div>
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <p className="text-[9px] text-white font-bold truncate">{img.name}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-gray-100 bg-gray-50/70 flex items-center justify-between shrink-0">
+          {selected ? (
+            <div className="flex items-center gap-2 text-[#008200]">
+              <Check size={14} />
+              <span className="text-xs font-bold truncate max-w-[300px]">{selected.path}</span>
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400 font-medium">Chưa chọn ảnh nào</span>
+          )}
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="px-4 py-2 rounded-xl text-xs font-black text-gray-500 hover:bg-gray-100 border border-gray-200 transition-all">
+              Hủy
+            </button>
+            <button
+              onClick={() => { if (selected) { onSelect(selected.url); onClose(); } }}
+              disabled={!selected}
+              className="px-4 py-2 rounded-xl text-xs font-black text-white bg-[#00c853] hover:bg-[#008200] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md shadow-[#00c853]/20"
+            >
+              Chọn ảnh này
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// ─── Component upload ảnh (máy tính + bucket) ────────────────────────────────
+const ImageUploadField = ({ label, value, onChange, fieldKey, bucket = 'thaotrang', folder = 'settings' }) => {
+  const [uploading, setUploading] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+
+  const handleUploadFromPC = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fileExt)) {
+      return alert('Chỉ chấp nhận: JPG, JPEG, PNG, WEBP, GIF');
+    }
+    setUploading(true);
+    try {
+      const fileName = `${folder}/${fieldKey}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from(bucket).getPublicUrl(fileName);
+      if (data?.publicUrl) onChange(data.publicUrl);
+    } catch (err) {
+      console.error('Lỗi tải ảnh:', err);
+      alert('Lỗi: ' + (err.message || err));
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      {label && (
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">{label}</label>
+      )}
+
+      {/* URL Input */}
+      <div className="flex gap-2 items-stretch">
+        <input
+          type="text"
+          className="input-field flex-1 text-xs"
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Dán URL ảnh hoặc chọn file bên phải..."
+        />
+
+        {/* Upload từ máy tính */}
+        <label
+          className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 border ${
+            uploading
+              ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-wait'
+              : 'bg-green-50 text-[#008200] hover:bg-[#008200] hover:text-white border-[#008200]/20'
+          }`}
+          title="Tải lên từ máy tính"
+        >
+          <Upload size={14} />
+          <span className="hidden sm:inline">{uploading ? 'Đang tải...' : 'Máy tính'}</span>
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={uploading}
+            onChange={handleUploadFromPC}
+          />
+        </label>
+
+        {/* Chọn từ bucket Supabase */}
+        <button
+          type="button"
+          onClick={() => setShowPicker(true)}
+          className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 border bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border-blue-200"
+          title="Chọn từ bucket Supabase"
+        >
+          <FolderOpen size={14} />
+          <span className="hidden sm:inline">Bucket</span>
+        </button>
+      </div>
+
+      {/* Preview */}
+      {value && (
+        <div className="relative w-full h-32 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 mt-1 group">
+          <img src={value} alt="Preview" className="w-full h-full object-cover" />
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute top-2 right-2 bg-red-500 text-white rounded-lg p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+            title="Xóa ảnh"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
+
+      {/* Bucket Picker Modal */}
+      <AnimatePresence>
+        {showPicker && (
+          <BucketImagePicker
+            bucket={bucket}
+            onSelect={onChange}
+            onClose={() => setShowPicker(false)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ─── Trình chỉnh sửa danh sách JSON động (milestones, why_us, home_gallery) ──
 const ListEditor = ({ items = [], onChange, fields = [] }) => {
   const [uploadingState, setUploadingState] = useState({});
 
@@ -216,6 +507,32 @@ const Settings = () => {
   const [formData, setFormData] = useState({});
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
+  const [uploadingHero, setUploadingHero] = useState(false);
+  const [uploadingAbout, setUploadingAbout] = useState(false);
+
+  const handleSettingImageUpload = async (key, setUploading, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fileExt = file.name.split('.').pop();
+    if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(fileExt.toLowerCase())) {
+      return alert('Chỉ chấp nhận các định dạng ảnh: JPG, JPEG, PNG, WEBP, GIF');
+    }
+    setUploading(true);
+    try {
+      const fileName = `settings/${key}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('thaotrang')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false });
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage.from('thaotrang').getPublicUrl(fileName);
+      if (data?.publicUrl) handleChange(key, data.publicUrl);
+    } catch (err) {
+      console.error('Lỗi tải ảnh:', err);
+      alert('Lỗi tải ảnh: ' + (err.message || err));
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (settings) {
@@ -415,14 +732,32 @@ const Settings = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">URL ảnh nền Banner</label>
-                      <input 
-                        type="text" 
-                        className="input-field"
-                        value={formData['home_hero_image_url'] || ''}
-                        onChange={(e) => handleChange('home_hero_image_url', e.target.value)}
-                        placeholder="Để trống để sử dụng hình ảnh mặc định..."
-                      />
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Ảnh nền Banner</label>
+                      <div className="flex gap-2 items-center">
+                        <input
+                          type="text"
+                          className="input-field flex-1"
+                          value={formData['home_hero_image_url'] || ''}
+                          onChange={(e) => handleChange('home_hero_image_url', e.target.value)}
+                          placeholder="Dán URL ảnh hoặc chọn file..."
+                        />
+                        <label className="flex items-center gap-1.5 px-3 py-2.5 bg-green-50 text-[#008200] hover:bg-[#008200] hover:text-white border border-[#008200]/20 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0">
+                          <Upload size={14} />
+                          <span>{uploadingHero ? 'Đang tải...' : 'Tải ảnh'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingHero}
+                            onChange={(e) => handleSettingImageUpload('home_hero_image_url', setUploadingHero, e)}
+                          />
+                        </label>
+                      </div>
+                      {formData['home_hero_image_url'] && (
+                        <div className="relative w-full h-28 rounded-xl overflow-hidden border border-gray-200 bg-gray-100 mt-1">
+                          <img src={formData['home_hero_image_url']} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -590,16 +925,14 @@ const Settings = () => {
                         placeholder="Mô tả phương châm phục vụ..."
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">URL Ảnh Giới thiệu</label>
-                      <input 
-                        type="text" 
-                        className="input-field"
-                        value={formData['about_image_url'] || ''}
-                        onChange={(e) => handleChange('about_image_url', e.target.value)}
-                        placeholder="Hình ảnh minh họa trang giới thiệu..."
-                      />
-                    </div>
+                    <ImageUploadField
+                      label="Ảnh Giới thiệu"
+                      value={formData['about_image_url'] || ''}
+                      onChange={(url) => handleChange('about_image_url', url)}
+                      fieldKey="about_image_url"
+                      bucket="thaotrang"
+                      folder="settings"
+                    />
                   </div>
                 </div>
 

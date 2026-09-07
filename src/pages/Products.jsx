@@ -1,15 +1,24 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ShoppingBag, Star, SlidersHorizontal, X, Loader2 } from 'lucide-react';
+import { Search, ShoppingBag, Star, SlidersHorizontal, X, Check } from 'lucide-react';
 import { useProducts } from '../hooks/useProducts';
+import { useCart } from '../context/CartContext';
 import productsImg from '../assets/badminton_products_1777876769461.png';
 
 const Products = () => {
   const [category, setCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilter, setShowFilter] = useState(false);
+  const [addedMap, setAddedMap] = useState({});
 
   const { products, categories: hookCategories, loading } = useProducts({ status: 'active' });
+  const { addToCart } = useCart();
+
+  const handleAddToCart = (product) => {
+    addToCart(product);
+    setAddedMap((prev) => ({ ...prev, [product.id]: true }));
+    setTimeout(() => setAddedMap((prev) => ({ ...prev, [product.id]: false })), 1500);
+  };
 
   const filteredProducts = products.filter(p =>
     (category === 'all' || p.category_id === category) &&
@@ -177,10 +186,12 @@ const Products = () => {
                             {p.price.toLocaleString('vi-VN')}đ
                           </p>
                           <button
+                            onClick={() => handleAddToCart(p)}
                             className="w-8 h-8 sm:w-10 sm:h-10 rounded-full text-white flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
-                            style={{ background: 'linear-gradient(135deg, #00c853, #008200)', boxShadow: '0 4px 12px rgba(0,200,83,0.4)' }}
+                            style={{ background: addedMap[p.id] ? 'linear-gradient(135deg, #00a152, #005c00)' : 'linear-gradient(135deg, #00c853, #008200)', boxShadow: '0 4px 12px rgba(0,200,83,0.4)' }}
+                            title="Thêm vào giỏ"
                           >
-                            <ShoppingBag size={14} />
+                            {addedMap[p.id] ? <Check size={14} /> : <ShoppingBag size={14} />}
                           </button>
                         </div>
                       </div>

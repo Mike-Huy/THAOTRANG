@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import FloatButtons from './components/FloatButtons';
+import CartDrawer from './components/CartDrawer';
+import { CartProvider } from './context/CartContext';
 import Home from './pages/Home';
 import About from './pages/About';
 import Products from './pages/Products';
@@ -61,15 +63,18 @@ function AppContent() {
       </main>
       {!isAdminPath && <Footer />}
       {!isAdminPath && <FloatButtons />}
+      <CartDrawer />
     </div>
   );
 }
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <CartProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </CartProvider>
   );
 }
 
