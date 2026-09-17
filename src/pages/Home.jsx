@@ -1,10 +1,8 @@
 import { motion } from 'framer-motion';
-import { ChevronRight, Star, ArrowRight, Users, Trophy, Award, Zap } from 'lucide-react';
+import { ChevronRight, Star, ArrowRight, Users, Trophy, Award, Zap, ImageOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '../hooks/useSettings';
 import { useProducts } from '../hooks/useProducts';
-import action1 from '../assets/badminton_action_1_1777876749514.png';
-import products from '../assets/badminton_products_1777876769461.png';
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -23,11 +21,11 @@ const Home = () => {
     { icon: <Award size={26} />, value: settings.home_stats_courts || '9', label: 'Sân đạt chuẩn' },
   ];
 
-  const defaultProductList = [
-    { name: 'Vợt Yonex Astrox 88D', price: 4500000, tag: 'New', image_url: products },
-    { name: 'Cầu Hải Yến S90', price: 250000, tag: 'Hot', image_url: products },
-    { name: 'Quấn cán Yonex AC102EX', price: 30000, tag: 'Best Seller', image_url: products },
-    { name: 'Giày Victor SH-P9200', price: 2100000, tag: '-10%', image_url: products },
+  const defaultProductNames = [
+    { name: 'Vợt Yonex Astrox 88D', price: 4500000, tag: 'New' },
+    { name: 'Cầu Hải Yến S90', price: 250000, tag: 'Hot' },
+    { name: 'Quấn cán Yonex AC102EX', price: 30000, tag: 'Best Seller' },
+    { name: 'Giày Victor SH-P9200', price: 2100000, tag: '-10%' },
   ];
 
   const productList = fetchedProducts && fetchedProducts.length > 0
@@ -35,15 +33,15 @@ const Home = () => {
         name: p.name,
         price: p.price.toLocaleString('vi-VN') + 'đ',
         tag: p.tag || 'Hot',
-        image_url: p.cover_url || products,
-        rating: p.rating || 5
+        image_url: p.cover_url || null,
+        rating: p.rating || 5,
       }))
-    : defaultProductList.map(p => ({
+    : defaultProductNames.map(p => ({
         name: p.name,
         price: p.price.toLocaleString('vi-VN') + 'đ',
         tag: p.tag,
-        image_url: p.image_url,
-        rating: 5
+        image_url: null,
+        rating: 5,
       }));
 
   let parsedPartners = settings.home_partners;
@@ -55,66 +53,53 @@ const Home = () => {
     : ['Yonex', 'Victor', 'Li-Ning', 'Forza', 'Mizuno'];
 
   const defaultWhyUs = [
-    {
-      title: 'Sân Chuẩn BWF',
-      desc: 'Mặt sân thảm Yonex cao cấp, đèn chiếu sáng chuyên nghiệp, đạt tiêu chuẩn thi đấu quốc tế.',
-    },
-    {
-      title: 'HLV Chuyên Nghiệp',
-      desc: 'Đội ngũ huấn luyện viên cấp quốc gia, có kinh nghiệm thi đấu chuyên nghiệp nhiều năm.',
-    },
-    {
-      title: 'Đặt Sân Online 24/7',
-      desc: 'Hệ thống đặt sân trực tuyến thông minh, quản lý lịch chơi dễ dàng, nhanh chóng và tiện lợi.',
-    },
+    { title: 'Sân Chuẩn BWF', desc: 'Mặt sân thảm Yonex cao cấp, đèn chiếu sáng chuyên nghiệp, đạt tiêu chuẩn thi đấu quốc tế.' },
+    { title: 'HLV Chuyên Nghiệp', desc: 'Đội ngũ huấn luyện viên cấp quốc gia, có kinh nghiệm thi đấu chuyên nghiệp nhiều năm.' },
+    { title: 'Đặt Sân Online 24/7', desc: 'Hệ thống đặt sân trực tuyến thông minh, quản lý lịch chơi dễ dàng, nhanh chóng và tiện lợi.' },
   ];
 
   const rawWhyUs = Array.isArray(settings.home_why_us) ? settings.home_why_us : defaultWhyUs;
   const whyUsIcons = [<Zap size={24} />, <Trophy size={24} />, <Award size={24} />];
   const whyUs = rawWhyUs.map((item, index) => ({
-    n: String(index + 1).padStart(2, '0'),
     icon: whyUsIcons[index % whyUsIcons.length] || <Zap size={24} />,
     title: item.title,
     desc: item.desc,
   }));
 
-  const defaultGallery = [
-    { title: 'Giải đấu chuyên nghiệp', image_url: action1 },
-    { title: 'Luyện tập hàng ngày', image_url: action1 },
-    { title: 'Cộng đồng badminton', image_url: action1 },
-  ];
-
-  // Chấp nhận cả array lẫn JSON string (phòng trường hợp DB có type sai)
+  // Gallery — chỉ dùng sau khi settings load xong, không fallback sang ảnh local
   let parsedGallery = settings.home_gallery;
   if (typeof parsedGallery === 'string') {
     try { parsedGallery = JSON.parse(parsedGallery); } catch { parsedGallery = null; }
   }
-  const rawGallery = Array.isArray(parsedGallery) && parsedGallery.length > 0
-    ? parsedGallery
-    : defaultGallery;
-
-  const galleryItems = rawGallery.map((item, index) => ({
-    title: item.title || defaultGallery[index]?.title || `Hoạt động ${index + 1}`,
-    image_url: item.image_url || action1,
-  }));
+  const defaultGalleryTitles = ['Giải đấu chuyên nghiệp', 'Luyện tập hàng ngày', 'Cộng đồng badminton'];
+  const galleryItems = !settingsLoading && Array.isArray(parsedGallery) && parsedGallery.length > 0
+    ? parsedGallery.map((item, i) => ({
+        title: item.title || defaultGalleryTitles[i] || `Hoạt động ${i + 1}`,
+        image_url: item.image_url || null,
+      }))
+    : defaultGalleryTitles.map(title => ({ title, image_url: null }));
 
   return (
     <div className="home-page">
       {/* ─── HERO ─── */}
-      <section className="relative w-full h-[360px] sm:h-[420px] md:h-[460px] flex items-center overflow-hidden">
+      <section className="relative w-full h-[360px] sm:h-[420px] md:h-[460px] flex items-center overflow-hidden bg-[#0a0f0a]">
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/20 z-10" />
         <div className="absolute bottom-0 left-0 w-full sm:w-[500px] h-[200px] sm:h-[300px] z-10 pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at bottom left, rgba(0,200,83,0.18) 0%, transparent 70%)' }} />
-        {!settingsLoading && (
+
+        {/* Chỉ render ảnh sau khi settings load xong và có URL được cấu hình */}
+        {!settingsLoading && settings.home_hero_image_url && (
           <motion.img
+            key={settings.home_hero_image_url}
             initial={{ opacity: 0, scale: 1.08 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ opacity: { duration: 0.6 }, scale: { duration: 12, repeat: Infinity, repeatType: 'reverse', ease: 'linear' } }}
-            src={settings.home_hero_image_url || action1}
+            src={settings.home_hero_image_url}
             alt="Hero"
             className="absolute inset-0 w-full h-full object-cover"
           />
         )}
+
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 relative z-20 w-full">
           <motion.div
             initial={{ opacity: 0, x: -40 }}
@@ -186,31 +171,44 @@ const Home = () => {
             <div className="section-divider mt-2" />
           </motion.div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            {galleryItems.map((item, i) => (
-              <Link to="/hoat-dong" key={i} className="block">
-                <motion.div
-                  {...fadeUp}
-                  transition={{ duration: 0.6, delay: i * 0.15 }}
-                  className="h-[220px] sm:h-[260px] md:h-[300px] rounded-2xl overflow-hidden relative group cursor-pointer"
-                  style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}
-                >
-                  <img src={item.image_url || action1} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-white font-bold text-sm">{item.title}</h3>
-                      <span
-                        className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-3 group-hover:translate-x-0"
-                        style={{ background: 'linear-gradient(135deg, #00c853, #008200)' }}
-                      >
-                        Xem thêm <ArrowRight size={10} />
-                      </span>
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 rounded-2xl border-2 border-[#00c853] opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
-                </motion.div>
-              </Link>
-            ))}
+            {settingsLoading
+              ? /* Skeleton khi đang load */
+                [0, 1, 2].map(i => (
+                  <div key={i} className="h-[220px] sm:h-[260px] md:h-[300px] rounded-2xl bg-gray-200 animate-pulse" />
+                ))
+              : galleryItems.map((item, i) => (
+                  <Link to="/hoat-dong" key={i} className="block">
+                    <motion.div
+                      {...fadeUp}
+                      transition={{ duration: 0.6, delay: i * 0.15 }}
+                      className="h-[220px] sm:h-[260px] md:h-[300px] rounded-2xl overflow-hidden relative group cursor-pointer"
+                      style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.12)' }}
+                    >
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"
+                          style={{ background: 'linear-gradient(135deg, #0d1a0d 0%, #1a2e1a 50%, #0a0f0a 100%)' }}>
+                          <ImageOff size={32} className="text-white/20" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-white font-bold text-sm">{item.title}</h3>
+                          <span
+                            className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full text-white transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-3 group-hover:translate-x-0"
+                            style={{ background: 'linear-gradient(135deg, #00c853, #008200)' }}
+                          >
+                            Xem thêm <ArrowRight size={10} />
+                          </span>
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 rounded-2xl border-2 border-[#00c853] opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
+                    </motion.div>
+                  </Link>
+                ))
+            }
           </div>
         </div>
       </section>
@@ -244,17 +242,23 @@ const Home = () => {
                   <span className="badge !text-[8px] !px-2 !py-0.5">{p.tag}</span>
                 </div>
                 <div className="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
-                  <img src={p.image_url || products} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  {p.image_url ? (
+                    <img src={p.image_url} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-green-50 to-gray-100">
+                      <ImageOff size={28} className="text-gray-300" />
+                    </div>
+                  )}
                 </div>
                 <div className="p-3 sm:p-4">
                   <h3 className="font-bold text-xs sm:text-sm text-gray-800 mb-2 group-hover:text-[#008200] transition-colors line-clamp-2 leading-tight">{p.name}</h3>
                   <div className="flex gap-0.5 text-yellow-400 mb-2 sm:mb-3">
                     {[1, 2, 3, 4, 5].map(s => (
-                      <Star 
-                        key={s} 
-                        size={9} 
-                        fill={s <= (p.rating || 5) ? 'currentColor' : 'none'} 
-                        className={s <= (p.rating || 5) ? '' : 'text-gray-200'} 
+                      <Star
+                        key={s}
+                        size={9}
+                        fill={s <= (p.rating || 5) ? 'currentColor' : 'none'}
+                        className={s <= (p.rating || 5) ? '' : 'text-gray-200'}
                       />
                     ))}
                   </div>
